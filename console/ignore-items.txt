@@ -6,7 +6,7 @@ build
 .idea
 .gitignore
 README.md
-
+.vite
 
 structure
 console

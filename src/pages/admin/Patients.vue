@@ -18,6 +18,7 @@
             class="px-6"
             prepend-icon="mdi-account-plus"
             @click="openEnrollmentDialog"
+            :loading="loading"
           >
             New Enrollment
           </v-btn>
@@ -27,6 +28,7 @@
             class="px-4"
             prepend-icon="mdi-download"
             @click="exportPatientData"
+            :disabled="patients.length === 0"
           >
             Export
           </v-btn>
@@ -38,7 +40,7 @@
         <v-col cols="12" sm="6" md="3">
           <v-card class="stat-card" elevation="2">
             <v-card-text class="text-center">
-              <div class="stat-value text-primary">{{ stats.totalPatients }}</div>
+              <div class="stat-value text-primary">{{ stats.total }}</div>
               <div class="stat-label">Total Patients</div>
             </v-card-text>
           </v-card>
@@ -46,7 +48,7 @@
         <v-col cols="12" sm="6" md="3">
           <v-card class="stat-card" elevation="2">
             <v-card-text class="text-center">
-              <div class="stat-value text-success">{{ stats.consentedPatients }}</div>
+              <div class="stat-value text-success">{{ stats.consented }}</div>
               <div class="stat-label">Consented</div>
             </v-card-text>
           </v-card>
@@ -54,7 +56,7 @@
         <v-col cols="12" sm="6" md="3">
           <v-card class="stat-card" elevation="2">
             <v-card-text class="text-center">
-              <div class="stat-value text-warning">{{ stats.reactivePatients }}</div>
+              <div class="stat-value text-warning">{{ stats.reactive }}</div>
               <div class="stat-label">Reactive Status</div>
             </v-card-text>
           </v-card>
@@ -62,13 +64,26 @@
         <v-col cols="12" sm="6" md="3">
           <v-card class="stat-card" elevation="2">
             <v-card-text class="text-center">
-              <div class="stat-value text-info">{{ stats.verifiedPatients }}</div>
+              <div class="stat-value text-info">{{ stats.dlt_verified }}</div>
               <div class="stat-label">DLT Verified</div>
             </v-card-text>
           </v-card>
         </v-col>
       </v-row>
     </div>
+
+    <!-- Error Alert -->
+    <v-alert
+      v-if="error"
+      type="error"
+      variant="tonal"
+      class="mb-4"
+    >
+      <template v-slot:title>
+        Error Loading Patients
+      </template>
+      {{ error }}
+    </v-alert>
 
     <!-- Main Content -->
     <v-card elevation="2" class="main-card">
@@ -86,6 +101,7 @@
                 density="comfortable"
                 hide-details
                 clearable
+                @update:model-value="handleSearch"
               />
             </v-col>
             <v-col cols="12" md="2">
@@ -97,6 +113,7 @@
                 density="comfortable"
                 hide-details
                 clearable
+                @update:model-value="handleFilterChange"
               />
             </v-col>
             <v-col cols="12" md="2">
@@ -108,6 +125,7 @@
                 density="comfortable"
                 hide-details
                 clearable
+                @update:model-value="handleFilterChange"
               />
             </v-col>
             <v-col cols="12" md="2">
@@ -119,6 +137,7 @@
                 density="comfortable"
                 hide-details
                 clearable
+                @update:model-value="handleFilterChange"
               />
             </v-col>
             <v-col cols="12" md="2">
@@ -129,6 +148,7 @@
                 variant="outlined"
                 density="comfortable"
                 hide-details
+                @update:model-value="handleSortChange"
               />
             </v-col>
           </v-row>
@@ -140,7 +160,7 @@
         </v-overlay>
 
         <!-- Patients Table -->
-        <v-table class="patients-table" v-if="!loading">
+        <v-table class="patients-table" v-if="!loading && patients.length > 0">
           <thead>
             <tr>
               <th class="text-left">Patient ID</th>
@@ -166,7 +186,7 @@
               </td>
               <td>{{ calculateAge(patient.date_of_birth) }}</td>
               <td>
-                <div class="contact-info">{{ patient.contact_info || 'N/A' }}</div>
+                <div class="contact-info">{{ patient.contact_info || patient.contact || 'N/A' }}</div>
               </td>
               <td>
                 <v-chip
@@ -174,7 +194,7 @@
                   :color="patient.consent_status === 'YES' ? 'green' : 'red'"
                   variant="flat"
                 >
-                  {{ patient.consent_status }}
+                  {{ patient.consent_status || (patient.consent ? 'YES' : 'NO') }}
                 </v-chip>
               </td>
               <td>
@@ -195,7 +215,7 @@
                   style="cursor: pointer;"
                 >
                   <v-icon small left>{{ getDltStatusIcon(patient.dlt_status) }}</v-icon>
-                  {{ patient.dlt_status || 'Not Verified' }}
+                  {{ patient.dlt_status || 'pending' }}
                 </v-chip>
               </td>
               <td>{{ formatDate(patient.created_at) }}</td>
@@ -258,15 +278,30 @@
                 </div>
               </td>
             </tr>
-
-            <tr v-if="!filteredPatients.length">
-              <td colspan="9" class="text-center py-8 text-medium-emphasis">
-                <v-icon size="64" color="grey-lighten-2" class="mb-2">mdi-account-off</v-icon>
-                <div>No patients found matching your criteria.</div>
-              </td>
-            </tr>
           </tbody>
         </v-table>
+
+        <!-- Empty State -->
+        <div v-if="!loading && patients.length === 0" class="text-center py-12">
+          <v-icon size="64" color="grey-lighten-2" class="mb-4">mdi-account-off</v-icon>
+          <div class="text-h6 text-medium-emphasis mb-2">No Patients Found</div>
+          <div class="text-body-1 text-medium-emphasis mb-4">
+            Get started by enrolling your first patient.
+          </div>
+          <v-btn color="primary" @click="openEnrollmentDialog">
+            <v-icon start>mdi-account-plus</v-icon>
+            Enroll First Patient
+          </v-btn>
+        </div>
+
+        <!-- No Results State -->
+        <div v-if="!loading && patients.length > 0 && filteredPatients.length === 0" class="text-center py-8 text-medium-emphasis">
+          <v-icon size="64" color="grey-lighten-2" class="mb-2">mdi-account-off</v-icon>
+          <div>No patients found matching your criteria.</div>
+          <v-btn variant="text" @click="clearFilters" class="mt-2">
+            Clear Filters
+          </v-btn>
+        </div>
 
         <!-- Pagination -->
         <div class="pagination-section" v-if="pageCount > 1">
@@ -299,16 +334,22 @@
       :patient="selectedPatient"
       @verified="handleDltVerified"
     />
+
+    <!-- Snackbar for notifications -->
+    <v-snackbar v-model="snackbar.show" :color="snackbar.color" timeout="3000">
+      {{ snackbar.message }}
+    </v-snackbar>
   </v-container>
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
-import { usePatientStore } from '@/stores/patient'
+import { ref, computed, onMounted, watch } from 'vue'
+import { useRouter } from 'vue-router'
+import { patientsApi, dltApi } from '@/api'
 import PatientDialog from '@/components/PatientDialog.vue'
 import DltVerificationDialog from '@/components/DltVerificationDialog.vue'
 
-const patientStore = usePatientStore()
+const router = useRouter()
 
 // Reactive state
 const search = ref('')
@@ -320,11 +361,26 @@ const filters = ref({
 const sortBy = ref('created_at')
 const page = ref(1)
 const perPage = 10
+const loading = ref(false)
+const error = ref('')
+const patients = ref([])
+const stats = ref({
+  total: 0,
+  consented: 0,
+  reactive: 0,
+  dlt_verified: 0
+})
 
 const showPatientDialog = ref(false)
 const showDltDialog = ref(false)
 const selectedPatient = ref(null)
 const dialogMode = ref('create') // 'create' or 'edit'
+
+const snackbar = ref({
+  show: false,
+  message: '',
+  color: 'success'
+})
 
 // Options for filters
 const consentOptions = [
@@ -351,16 +407,6 @@ const sortOptions = [
 ]
 
 // Computed properties
-const loading = computed(() => patientStore.loading)
-const patients = computed(() => patientStore.patients)
-
-const stats = computed(() => ({
-  totalPatients: patients.value.length,
-  consentedPatients: patients.value.filter(p => p.consent_status === 'YES').length,
-  reactivePatients: patients.value.filter(p => p.hiv_status === 'Reactive').length,
-  verifiedPatients: patients.value.filter(p => p.dlt_status === 'verified').length
-}))
-
 const filteredPatients = computed(() => {
   let filtered = patients.value
 
@@ -368,15 +414,19 @@ const filteredPatients = computed(() => {
   if (search.value) {
     const query = search.value.toLowerCase()
     filtered = filtered.filter(patient =>
-      patient.name.toLowerCase().includes(query) ||
-      patient.patient_id.toLowerCase().includes(query) ||
-      (patient.contact_info && patient.contact_info.toLowerCase().includes(query))
+      patient.name?.toLowerCase().includes(query) ||
+      patient.patient_id?.toLowerCase().includes(query) ||
+      (patient.contact_info && patient.contact_info.toLowerCase().includes(query)) ||
+      (patient.contact && patient.contact.toLowerCase().includes(query))
     )
   }
 
   // Consent status filter
   if (filters.value.consentStatus) {
-    filtered = filtered.filter(patient => patient.consent_status === filters.value.consentStatus)
+    filtered = filtered.filter(patient => {
+      const consentValue = patient.consent_status || (patient.consent ? 'YES' : 'NO')
+      return consentValue === filters.value.consentStatus
+    })
   }
 
   // HIV status filter
@@ -406,10 +456,46 @@ const paginationEnd = computed(() => Math.min(page.value * perPage, filteredPati
 
 // Lifecycle
 onMounted(async () => {
-  await patientStore.fetchPatients()
+  await fetchPatients()
+  await fetchStats()
 })
 
 // Methods
+async function fetchPatients() {
+  loading.value = true
+  error.value = ''
+  try {
+    const response = await patientsApi.getAll({
+      limit: 1000 // Get all patients for client-side filtering
+    })
+    patients.value = response.data.patients || []
+    console.log('Patients loaded:', patients.value.length)
+  } catch (err) {
+    console.error('Error fetching patients:', err)
+    error.value = err.response?.data?.message || 'Failed to load patients'
+    patients.value = []
+    showSnackbar('Error loading patients', 'error')
+  } finally {
+    loading.value = false
+  }
+}
+
+async function fetchStats() {
+  try {
+    const response = await patientsApi.getStats()
+    stats.value = response.data
+  } catch (err) {
+    console.error('Error fetching stats:', err)
+    // Set fallback stats based on loaded patients
+    stats.value = {
+      total: patients.value.length,
+      consented: patients.value.filter(p => p.consent_status === 'YES' || p.consent).length,
+      reactive: patients.value.filter(p => p.hiv_status === 'Reactive').length,
+      dlt_verified: patients.value.filter(p => p.dlt_status === 'verified').length
+    }
+  }
+}
+
 function sortPatients(patients, sortKey) {
   const sorted = [...patients]
   switch (sortKey) {
@@ -418,15 +504,17 @@ function sortPatients(patients, sortKey) {
     case 'created_at_asc':
       return sorted.sort((a, b) => new Date(a.created_at) - new Date(b.created_at))
     case 'name':
-      return sorted.sort((a, b) => a.name.localeCompare(b.name))
+      return sorted.sort((a, b) => (a.name || '').localeCompare(b.name || ''))
     case 'name_desc':
-      return sorted.sort((a, b) => b.name.localeCompare(a.name))
+      return sorted.sort((a, b) => (b.name || '').localeCompare(a.name || ''))
     default:
       return sorted
   }
 }
 
 function calculateAge(dateString) {
+  if (!dateString) return 'N/A'
+  
   const today = new Date()
   const birthDate = new Date(dateString)
   let age = today.getFullYear() - birthDate.getFullYear()
@@ -439,6 +527,8 @@ function calculateAge(dateString) {
 }
 
 function formatDate(dateString) {
+  if (!dateString) return 'N/A'
+  
   return new Date(dateString).toLocaleDateString('en-US', {
     year: 'numeric',
     month: 'short',
@@ -447,6 +537,8 @@ function formatDate(dateString) {
 }
 
 function formatDateOfBirth(dateString) {
+  if (!dateString) return 'N/A'
+  
   return new Date(dateString).toLocaleDateString('en-US', {
     year: 'numeric',
     month: 'long',
@@ -480,7 +572,38 @@ function getDltStatusIcon(status) {
   return icons[status] || 'mdi-help-circle'
 }
 
-// Action handlers
+function showSnackbar(message, color = 'success') {
+  snackbar.value = {
+    show: true,
+    message,
+    color
+  }
+}
+
+// Event handlers
+function handleSearch() {
+  page.value = 1 // Reset to first page when searching
+}
+
+function handleFilterChange() {
+  page.value = 1 // Reset to first page when filtering
+}
+
+function handleSortChange() {
+  page.value = 1 // Reset to first page when sorting
+}
+
+function clearFilters() {
+  search.value = ''
+  filters.value = {
+    consentStatus: null,
+    hivStatus: null,
+    dltStatus: null
+  }
+  sortBy.value = 'created_at'
+  page.value = 1
+}
+
 function openEnrollmentDialog() {
   selectedPatient.value = null
   dialogMode.value = 'create'
@@ -488,9 +611,9 @@ function openEnrollmentDialog() {
 }
 
 function viewPatient(patient) {
-  // Navigate to patient details page or open view dialog
-  console.log('View patient:', patient)
-  // router.push(`/admin/patients/${patient.patient_id}`)
+  selectedPatient.value = { ...patient }
+  dialogMode.value = 'view'
+  showPatientDialog.value = true
 }
 
 function editPatient(patient) {
@@ -505,25 +628,74 @@ async function verifyDltIntegrity(patient) {
 }
 
 async function deletePatient(patient) {
-  if (confirm(`Are you sure you want to delete patient ${patient.patient_id} (${patient.name})?`)) {
-    await patientStore.deletePatient(patient.patient_id)
+  if (confirm(`Are you sure you want to delete patient ${patient.patient_id} (${patient.name})? This action cannot be undone.`)) {
+    try {
+      loading.value = true
+      await patientsApi.delete(patient.patient_id)
+      await fetchPatients() // Refresh the list
+      await fetchStats() // Refresh stats
+      showSnackbar('Patient deleted successfully')
+    } catch (err) {
+      console.error('Error deleting patient:', err)
+      showSnackbar('Failed to delete patient: ' + (err.response?.data?.message || err.message), 'error')
+    } finally {
+      loading.value = false
+    }
   }
 }
 
 function exportPatientData() {
-  // Implement export functionality
-  console.log('Export patient data')
+  try {
+    const dataStr = JSON.stringify(patients.value, null, 2)
+    const dataBlob = new Blob([dataStr], { type: 'application/json' })
+    const url = URL.createObjectURL(dataBlob)
+    const link = document.createElement('a')
+    link.href = url
+    link.download = `patients-export-${new Date().toISOString().split('T')[0]}.json`
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+    URL.revokeObjectURL(url)
+    showSnackbar('Patient data exported successfully')
+  } catch (err) {
+    console.error('Error exporting data:', err)
+    showSnackbar('Failed to export patient data', 'error')
+  }
 }
 
-function handlePatientSaved() {
+async function handlePatientSaved() {
   showPatientDialog.value = false
-  patientStore.fetchPatients() // Refresh the list
+  await fetchPatients() // Refresh the list
+  await fetchStats() // Refresh stats
+  showSnackbar('Patient saved successfully')
 }
 
-function handleDltVerified() {
+async function handleDltVerified(result) {
   showDltDialog.value = false
-  patientStore.fetchPatients() // Refresh to update DLT status
+  
+  if (result) {
+    // Update the specific patient's DLT status
+    const index = patients.value.findIndex(p => p.patient_id === result.patient_id)
+    if (index !== -1) {
+      patients.value[index].dlt_status = result.status
+    }
+    
+    await fetchStats() // Refresh stats
+    
+    if (result.is_verified) {
+      showSnackbar('DLT integrity verified successfully')
+    } else if (result.status === 'no_hash') {
+      showSnackbar('No DLT hash found for patient', 'warning')
+    } else {
+      showSnackbar('DLT integrity verification failed', 'error')
+    }
+  }
 }
+
+// Watch for page changes to reset to first page when data changes
+watch([search, filters, sortBy], () => {
+  page.value = 1
+})
 </script>
 
 <style scoped lang="scss">

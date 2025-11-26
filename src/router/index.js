@@ -9,7 +9,6 @@ const routes = [
     children: [
       { path: '', redirect: '/login' },
       { path: 'login', name: 'Login', component: () => import('@/pages/Login.vue') },
-      { path: 'register', name: 'Register', component: () => import('@/pages/Register.vue') }
     ]
   },
   {
@@ -20,7 +19,12 @@ const routes = [
       { path: '', redirect: '/admin/dashboard' },
       { path: 'dashboard', name: 'Dashboard', component: () => import('@/pages/admin/Dashboard.vue') },
       { path: 'patients', name: 'Patients', component: () => import('@/pages/admin/Patients.vue') },
-      {path: '/enroll',name: 'enroll', component: () => import('@/pages/admin/Enrollment.vue'), meta: { requiresAuth: true }},
+      { path: 'enroll', name: 'Enrollment', component: () => import('@/pages/admin/Enrollment.vue') },
+      { path: 'dlt-verification', name: 'DltVerification', component: () => import('@/pages/admin/DltVerification.vue') },
+      { path: 'biometric', name: 'Biometric', component: () => import('@/pages/admin/Biometric.vue') },
+      { path: 'audit-security', name: 'AuditSecurity', component: () => import('@/pages/admin/AuditSecurity.vue') },
+      { path: 'management', name: 'Management', component: () => import('@/pages/admin/Management.vue') },
+      { path: 'reports', name: 'Reports', component: () => import('@/pages/admin/Reports.vue') },
       {
         path: 'settings',
         component: () => import('@/pages/admin/settings/SettingsLayout.vue'),
@@ -45,16 +49,16 @@ const router = createRouter({
 // Navigation guard
 router.beforeEach((to, from, next) => {
   const authStore = useAuthStore()
-  
+
   // \u2705 FIX: Add proper auth checking
   const isAuthenticated = authStore.isAuthenticated && authStore.token
-  
-  console.log('\U0001f6e1\ufe0f Route guard:', { 
-    to: to.path, 
+
+  console.log('\U0001f6e1\ufe0f Route guard:', {
+    to: to.path,
     requiresAuth: to.meta.requiresAuth,
-    isAuthenticated 
+    isAuthenticated
   })
-  
+
   if (to.meta.requiresAuth && !isAuthenticated) {
     console.log('\U0001f512 Redirecting to login - not authenticated')
     next('/login')

@@ -1,7 +1,8 @@
-Directory Tree — Generated on 11/5/2025, 18:20:13
-Root: v1.0
+Directory Tree — Generated on 11/26/2025, 10:24:16
+Root: frontend
 
-v1.0/
+frontend/
+├─ .env
 ├─ index.html
 ├─ package-lock.json
 ├─ package.json
@@ -13,19 +14,18 @@ v1.0/
    ├─ App.vue
    ├─ main.js
    ├─ api/
-   │  ├─ ai.js
    │  ├─ auth.js
-   │  ├─ devices.js
    │  ├─ http.js
-   │  ├─ patients.js
-   │  └─ users.js
+   │  └─ patientApi.js
    ├─ assets/
    │  ├─ vue.svg
    │  ├─ fonts/
    │  ├─ icons/
    │  └─ images/
-   │     └─ logo.jpeg
+   │     └─ logo.png
    ├─ components/
+   │  ├─ DltVerificationDialog.vue
+   │  ├─ PatientDialog.vue
    │  ├─ charts/
    │  ├─ layout/
    │  │  ├─ Footer.vue
@@ -34,18 +34,17 @@ v1.0/
    │  └─ ui/
    │     └─ Button.vue
    ├─ composables/
-   │  └─ useAuth.js
+   │  ├─ useAuth.js
+   │  └─ usePatientsApi.js
    ├─ layouts/
    │  ├─ AdminLayout.vue
    │  └─ PublicLayout.vue
+   ├─ modules/
    ├─ pages/
    │  ├─ Login.vue
-   │  ├─ Register.vue
    │  └─ admin/
-   │     ├─ AIAnalysis.vue
-   │     ├─ Billing.vue
    │     ├─ Dashboard.vue
-   │     ├─ Devices.vue
+   │     ├─ Enrollment.vue
    │     ├─ Patients.vue
    │     └─ settings/
    │        ├─ Notifications.vue
@@ -57,8 +56,9 @@ v1.0/
    │  └─ vuetify.js
    ├─ router/
    │  └─ index.js
-   ├─ store/
-   │  └─ auth.js
+   ├─ stores/
+   │  ├─ auth.js
+   │  └─ patient.js
    └─ styles/
       ├─ style.css
       └─ variables.scss
