@@ -1,6 +1,16 @@
 // frontend/src/api/index.js
 import http from './http'
 
+
+// Admin API
+export const adminApi = {
+  getAll: () => http.get('/admin/users'),
+  getById: (id) => http.get(`/admin/users/${id}`),
+  create: (data) => http.post('/admin/users', data),
+  update: (id, data) => http.put(`/admin/users/${id}`, data),
+  delete: (id) => http.delete(`/admin/users/${id}`)
+}
+
 // Auth API
 export const authApi = {
   login: (credentials) => http.post('/auth/login', credentials),
@@ -172,5 +182,6 @@ export default {
   audit: auditApi,
   dlt: dltApi,
   biometric: biometricApi,
-  dashboard: dashboardApi
+  dashboard: dashboardApi,
+  admin: adminApi
 }

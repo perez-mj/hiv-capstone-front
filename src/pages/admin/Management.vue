@@ -6,17 +6,142 @@
       <div>
         <h1 class="text-h4 font-weight-bold text-primary">Admin Management</h1>
         <p class="text-body-1 text-medium-emphasis mt-2">
-          Manage system administrators and user permissions
+          Manage system administrators and user access
         </p>
       </div>
       <v-btn 
         color="primary" 
         prepend-icon="mdi-account-plus"
-        @click="showAddDialog = true"
+        @click="addAdmin"
       >
         Add Admin
       </v-btn>
     </div>
+
+    <!-- Add/Edit Admin Dialog -->
+    <v-dialog v-model="showAdminDialog" max-width="600" persistent>
+      <v-card>
+        <v-card-title class="d-flex justify-space-between align-center">
+          <span>{{ isEditMode ? 'Edit Administrator' : 'Add Administrator' }}</span>
+          <v-btn icon @click="closeAdminDialog">
+            <v-icon>mdi-close</v-icon>
+          </v-btn>
+        </v-card-title>
+
+        <v-card-text>
+          <v-form ref="adminForm" v-model="valid" @submit.prevent="saveAdmin">
+            <v-row>
+              <v-col cols="12" md="6">
+                <v-text-field
+                  v-model="adminForm.full_name"
+                  label="Full Name *"
+                  variant="outlined"
+                  density="comfortable"
+                  :rules="[requiredRule]"
+                  prepend-inner-icon="mdi-account"
+                />
+              </v-col>
+
+              <v-col cols="12" md="6">
+                <v-text-field
+                  v-model="adminForm.username"
+                  label="Username *"
+                  variant="outlined"
+                  density="comfortable"
+                  :rules="[requiredRule, usernameRule]"
+                  prepend-inner-icon="mdi-at"
+                  :disabled="isEditMode"
+                />
+              </v-col>
+
+              <v-col cols="12">
+                <v-text-field
+                  v-model="adminForm.email"
+                  label="Email Address"
+                  variant="outlined"
+                  density="comfortable"
+                  :rules="[emailRule]"
+                  prepend-inner-icon="mdi-email"
+                />
+              </v-col>
+
+              <v-col cols="12" v-if="!isEditMode">
+                <v-text-field
+                  v-model="adminForm.password"
+                  label="Password *"
+                  :type="showPassword ? 'text' : 'password'"
+                  variant="outlined"
+                  density="comfortable"
+                  :rules="[requiredRule, passwordRule]"
+                  prepend-inner-icon="mdi-lock"
+                  :append-inner-icon="showPassword ? 'mdi-eye-off' : 'mdi-eye'"
+                  @click:append-inner="showPassword = !showPassword"
+                />
+              </v-col>
+
+              <v-col cols="12" v-if="!isEditMode">
+                <v-text-field
+                  v-model="adminForm.confirmPassword"
+                  label="Confirm Password *"
+                  :type="showConfirmPassword ? 'text' : 'password'"
+                  variant="outlined"
+                  density="comfortable"
+                  :rules="[requiredRule, confirmPasswordRule]"
+                  prepend-inner-icon="mdi-lock-check"
+                  :append-inner-icon="showConfirmPassword ? 'mdi-eye-off' : 'mdi-eye'"
+                  @click:append-inner="showConfirmPassword = !showConfirmPassword"
+                />
+              </v-col>
+
+              <v-col cols="12">
+                <v-switch
+                  v-model="adminForm.is_active"
+                  label="Active Account"
+                  color="success"
+                  hide-details
+                  :disabled="isEditMode && adminForm.id === currentUser.id"
+                />
+              </v-col>
+
+              <v-col cols="12">
+                <v-alert 
+                  :type="isEditMode ? 'info' : 'success'" 
+                  variant="tonal" 
+                  density="compact"
+                >
+                  <div class="d-flex align-center">
+                    <v-icon class="me-2">{{ isEditMode ? 'mdi-information' : 'mdi-shield-check' }}</v-icon>
+                    <span>
+                      <strong>{{ isEditMode ? 'Security Update:' : 'Complete Admin Setup:' }}</strong> 
+                      {{ isEditMode 
+                        ? 'Changes will update admin access and permissions.'
+                        : 'New administrator will receive system access with full privileges.'
+                      }}
+                    </span>
+                  </div>
+                </v-alert>
+              </v-col>
+            </v-row>
+          </v-form>
+        </v-card-text>
+
+        <v-card-actions>
+          <v-spacer />
+          <v-btn variant="outlined" @click="closeAdminDialog" :disabled="saving">
+            Cancel
+          </v-btn>
+          <v-btn 
+            color="primary" 
+            @click="saveAdmin" 
+            :loading="saving"
+            :disabled="!valid || saving"
+            prepend-icon="mdi-content-save"
+          >
+            {{ isEditMode ? 'Update' : 'Create' }} Admin
+          </v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
 
     <!-- Stats Cards -->
     <v-row class="mb-6">
@@ -42,17 +167,17 @@
         <v-card elevation="2" border>
           <v-card-text class="text-center">
             <v-icon color="warning" size="48" class="mb-2">mdi-account-clock</v-icon>
-            <div class="text-h5 font-weight-bold">{{ stats.pending }}</div>
-            <div class="text-body-2 text-medium-emphasis">Pending</div>
+            <div class="text-h5 font-weight-bold">{{ stats.recentlyActive }}</div>
+            <div class="text-body-2 text-medium-emphasis">Active Today</div>
           </v-card-text>
         </v-card>
       </v-col>
       <v-col cols="12" sm="6" md="3">
         <v-card elevation="2" border>
           <v-card-text class="text-center">
-            <v-icon color="info" size="48" class="mb-2">mdi-security</v-icon>
-            <div class="text-h5 font-weight-bold">{{ stats.superAdmins }}</div>
-            <div class="text-body-2 text-medium-emphasis">Super Admins</div>
+            <v-icon color="info" size="48" class="mb-2">mdi-calendar-plus</v-icon>
+            <div class="text-h5 font-weight-bold">{{ stats.newThisWeek }}</div>
+            <div class="text-body-2 text-medium-emphasis">New This Week</div>
           </v-card-text>
         </v-card>
       </v-col>
@@ -67,19 +192,8 @@
               v-model="search"
               density="comfortable"
               variant="outlined"
-              placeholder="Search by name, email, or username..."
+              placeholder="Search by name, username, or email..."
               prepend-inner-icon="mdi-magnify"
-              hide-details
-              clearable
-            />
-          </v-col>
-          <v-col cols="12" md="3">
-            <v-select
-              v-model="roleFilter"
-              density="comfortable"
-              variant="outlined"
-              :items="roleOptions"
-              placeholder="Filter by Role"
               hide-details
               clearable
             />
@@ -93,6 +207,16 @@
               placeholder="Filter by Status"
               hide-details
               clearable
+            />
+          </v-col>
+          <v-col cols="12" md="3">
+            <v-select
+              v-model="sortBy"
+              density="comfortable"
+              variant="outlined"
+              :items="sortOptions"
+              placeholder="Sort By"
+              hide-details
             />
           </v-col>
           <v-col cols="12" md="2" class="text-right">
@@ -149,17 +273,16 @@
           <template v-slot:item.adminInfo="{ item }">
             <div class="d-flex align-center">
               <v-avatar 
-                :color="getRoleColor(item.role)" 
+                :color="item.is_active ? 'primary' : 'grey'" 
                 size="40" 
                 class="mr-3"
               >
-                <v-icon v-if="item.role === 'super_admin'" color="white">mdi-security</v-icon>
-                <span v-else class="text-caption text-white">
-                  {{ getInitials(item.name) }}
+                <span class="text-caption text-white">
+                  {{ getInitials(item.full_name) }}
                 </span>
               </v-avatar>
               <div>
-                <div class="font-weight-medium">{{ item.name }}</div>
+                <div class="font-weight-medium">{{ item.full_name }}</div>
                 <div class="text-caption text-medium-emphasis">
                   {{ item.email }}
                 </div>
@@ -167,50 +290,38 @@
             </div>
           </template>
 
-          <!-- Role Column -->
-          <template v-slot:item.role="{ item }">
-            <v-chip 
-              :color="getRoleColor(item.role)" 
-              size="small"
-              variant="flat"
-              :prepend-icon="getRoleIcon(item.role)"
-            >
-              {{ formatRole(item.role) }}
-            </v-chip>
-          </template>
-
           <!-- Status Column -->
-          <template v-slot:item.status="{ item }">
+          <template v-slot:item.is_active="{ item }">
             <v-chip 
-              :color="getStatusColor(item.status)" 
+              :color="getStatusColor(item.is_active)" 
               size="small"
               variant="flat"
-              :prepend-icon="getStatusIcon(item.status)"
+              :prepend-icon="getStatusIcon(item.is_active)"
             >
-              {{ item.status }}
+              {{ item.is_active ? 'Active' : 'Inactive' }}
             </v-chip>
           </template>
 
           <!-- Last Login Column -->
-          <template v-slot:item.lastLogin="{ item }">
-            <div v-if="item.lastLogin" class="text-no-wrap">
-              {{ formatDate(item.lastLogin) }}
+          <template v-slot:item.last_login="{ item }">
+            <div v-if="item.last_login" class="text-no-wrap">
+              {{ formatDate(item.last_login) }}
             </div>
             <div v-else class="text-caption text-medium-emphasis">
               Never
             </div>
-            <div v-if="item.lastLogin" class="text-caption text-medium-emphasis">
-              {{ formatTimeAgo(item.lastLogin) }}
+            <div v-if="item.last_login" class="text-caption text-medium-emphasis">
+              {{ formatTimeAgo(item.last_login) }}
             </div>
           </template>
 
           <!-- Created Date Column -->
-          <template v-slot:item.createdAt="{ item }">
+          <template v-slot:item.created_at="{ item }">
             <div class="text-no-wrap">
-              {{ formatDate(item.createdAt) }}
+              {{ formatDate(item.created_at) }}
             </div>
             <div class="text-caption text-medium-emphasis">
-              {{ formatTimeAgo(item.createdAt) }}
+              {{ formatTimeAgo(item.created_at) }}
             </div>
           </template>
 
@@ -223,20 +334,20 @@
                 color="primary"
                 prepend-icon="mdi-pencil"
                 @click="editAdmin(item)"
-                :disabled="item.role === 'super_admin' && currentUser.role !== 'super_admin'"
+                :disabled="item.id === currentUser.id"
               >
                 Edit
               </v-btn>
               <v-btn
                 size="small"
                 variant="outlined"
-                :color="item.status === 'active' ? 'warning' : 'success'"
-                :prepend-icon="item.status === 'active' ? 'mdi-account-cancel' : 'mdi-account-check'"
+                :color="item.is_active ? 'warning' : 'success'"
+                :prepend-icon="item.is_active ? 'mdi-account-cancel' : 'mdi-account-check'"
                 @click="toggleAdminStatus(item)"
-                :disabled="item.id === currentUser.id || (item.role === 'super_admin' && currentUser.role !== 'super_admin')"
+                :disabled="item.id === currentUser.id"
                 :loading="item.togglingStatus"
               >
-                {{ item.status === 'active' ? 'Deactivate' : 'Activate' }}
+                {{ item.is_active ? 'Deactivate' : 'Activate' }}
               </v-btn>
               <v-btn
                 size="small"
@@ -244,7 +355,7 @@
                 color="error"
                 prepend-icon="mdi-delete"
                 @click="deleteAdmin(item)"
-                :disabled="item.id === currentUser.id || (item.role === 'super_admin' && currentUser.role !== 'super_admin')"
+                :disabled="item.id === currentUser.id"
                 :loading="item.deleting"
               >
                 Delete
@@ -289,7 +400,7 @@
             <v-row>
               <v-col cols="12" md="6">
                 <v-text-field
-                  v-model="adminForm.name"
+                  v-model="adminForm.full_name"
                   label="Full Name *"
                   variant="outlined"
                   density="comfortable"
@@ -310,49 +421,14 @@
                 />
               </v-col>
 
-              <v-col cols="12" md="6">
+              <v-col cols="12">
                 <v-text-field
                   v-model="adminForm.email"
-                  label="Email Address *"
+                  label="Email Address"
                   variant="outlined"
                   density="comfortable"
-                  :rules="[requiredRule, emailRule]"
+                  :rules="[emailRule]"
                   prepend-inner-icon="mdi-email"
-                />
-              </v-col>
-
-              <v-col cols="12" md="6">
-                <v-text-field
-                  v-model="adminForm.phone"
-                  label="Phone Number"
-                  variant="outlined"
-                  density="comfortable"
-                  :rules="[phoneRule]"
-                  prepend-inner-icon="mdi-phone"
-                />
-              </v-col>
-
-              <v-col cols="12" md="6">
-                <v-select
-                  v-model="adminForm.role"
-                  :items="roleOptions"
-                  label="Role *"
-                  variant="outlined"
-                  density="comfortable"
-                  :rules="[requiredRule]"
-                  prepend-inner-icon="mdi-security"
-                  :disabled="currentUser.role !== 'super_admin'"
-                />
-              </v-col>
-
-              <v-col cols="12" md="6">
-                <v-select
-                  v-model="adminForm.department"
-                  :items="departmentOptions"
-                  label="Department"
-                  variant="outlined"
-                  density="comfortable"
-                  prepend-inner-icon="mdi-office-building"
                 />
               </v-col>
 
@@ -385,6 +461,16 @@
               </v-col>
 
               <v-col cols="12">
+                <v-switch
+                  v-model="adminForm.is_active"
+                  label="Active Account"
+                  color="success"
+                  hide-details
+                  :disabled="isEditMode && adminForm.id === currentUser.id"
+                />
+              </v-col>
+
+              <v-col cols="12">
                 <v-alert 
                   :type="isEditMode ? 'info' : 'success'" 
                   variant="tonal" 
@@ -395,8 +481,8 @@
                     <span>
                       <strong>{{ isEditMode ? 'Security Update:' : 'Complete Admin Setup:' }}</strong> 
                       {{ isEditMode 
-                        ? 'Changes will update admin permissions and access rights.'
-                        : 'New administrator will receive system access with specified role permissions.'
+                        ? 'Changes will update admin access and permissions.'
+                        : 'New administrator will receive system access with full privileges.'
                       }}
                     </span>
                   </div>
@@ -424,47 +510,61 @@
       </v-card>
     </v-dialog>
 
-    <!-- Permissions Dialog -->
-    <v-dialog v-model="showPermissionsDialog" max-width="500">
+    <!-- Admin Details Dialog -->
+    <v-dialog v-model="showDetailsDialog" max-width="500">
       <v-card>
         <v-card-title class="d-flex justify-space-between align-center">
-          <span>Admin Permissions</span>
-          <v-btn icon @click="showPermissionsDialog = false">
+          <span>Admin Details</span>
+          <v-btn icon @click="showDetailsDialog = false">
             <v-icon>mdi-close</v-icon>
           </v-btn>
         </v-card-title>
         <v-card-text>
           <div v-if="selectedAdmin" class="text-center">
-            <v-avatar color="primary" size="64" class="mb-4">
-              <v-icon v-if="selectedAdmin.role === 'super_admin'" color="white" size="32">mdi-security</v-icon>
-              <span v-else class="text-h6 text-white">{{ getInitials(selectedAdmin.name) }}</span>
+            <v-avatar :color="selectedAdmin.is_active ? 'primary' : 'grey'" size="64" class="mb-4">
+              <span class="text-h6 text-white">{{ getInitials(selectedAdmin.full_name) }}</span>
             </v-avatar>
-            <div class="text-h6 mb-2">{{ selectedAdmin.name }}</div>
-            <div class="text-body-2 text-medium-emphasis mb-4">{{ selectedAdmin.email }}</div>
+            <div class="text-h6 mb-2">{{ selectedAdmin.full_name }}</div>
+            <div class="text-body-2 text-medium-emphasis mb-1">@{{ selectedAdmin.username }}</div>
+            <div class="text-body-2 text-medium-emphasis mb-4">{{ selectedAdmin.email || 'No email' }}</div>
             
             <v-divider class="my-4" />
             
-            <div class="text-left">
-              <div class="text-subtitle-2 mb-2">Role Permissions:</div>
-              <v-list density="compact">
-                <v-list-item
-                  v-for="permission in getRolePermissions(selectedAdmin.role)"
-                  :key="permission"
+            <v-row class="text-left">
+              <v-col cols="6">
+                <div class="text-caption text-medium-emphasis">Status</div>
+                <v-chip 
+                  :color="getStatusColor(selectedAdmin.is_active)" 
+                  size="small"
+                  class="mt-1"
                 >
-                  <template v-slot:prepend>
-                    <v-icon color="success" size="20">mdi-check-circle</v-icon>
-                  </template>
-                  <v-list-item-title class="text-body-2">
-                    {{ permission }}
-                  </v-list-item-title>
-                </v-list-item>
-              </v-list>
-            </div>
+                  {{ selectedAdmin.is_active ? 'Active' : 'Inactive' }}
+                </v-chip>
+              </v-col>
+              <v-col cols="6">
+                <div class="text-caption text-medium-emphasis">Last Login</div>
+                <div class="text-body-2 mt-1">
+                  {{ selectedAdmin.last_login ? formatDateTime(selectedAdmin.last_login) : 'Never' }}
+                </div>
+              </v-col>
+              <v-col cols="6">
+                <div class="text-caption text-medium-emphasis">Created</div>
+                <div class="text-body-2 mt-1">
+                  {{ formatDate(selectedAdmin.created_at) }}
+                </div>
+              </v-col>
+              <v-col cols="6">
+                <div class="text-caption text-medium-emphasis">Last Updated</div>
+                <div class="text-body-2 mt-1">
+                  {{ formatDate(selectedAdmin.updated_at) }}
+                </div>
+              </v-col>
+            </v-row>
           </div>
         </v-card-text>
         <v-card-actions>
           <v-spacer />
-          <v-btn color="primary" @click="showPermissionsDialog = false">
+          <v-btn color="primary" @click="showDetailsDialog = false">
             Close
           </v-btn>
         </v-card-actions>
@@ -481,19 +581,18 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { useAuthStore } from '@/stores/auth'
+import { adminApi } from '@/api'
 
 const authStore = useAuthStore()
 
-// Reactive state
 const loading = ref(false)
 const saving = ref(false)
 const search = ref('')
-const roleFilter = ref('')
 const statusFilter = ref('')
-const sortBy = ref('createdAt')
+const sortBy = ref('created_at')
 const admins = ref([])
-const showAdminDialog = ref(false)
-const showPermissionsDialog = ref(false)
+const showAdminDialog = ref(false) // Fixed: Using only one dialog control variable
+const showDetailsDialog = ref(false)
 const isEditMode = ref(false)
 const valid = ref(false)
 const selectedAdmin = ref(null)
@@ -508,97 +607,81 @@ const snackbar = ref({
 
 const adminForm = ref({
   id: null,
-  name: '',
   username: '',
+  full_name: '',
   email: '',
-  phone: '',
-  role: 'admin',
-  department: '',
+  is_active: true,
   password: '',
   confirmPassword: ''
 })
 
 // Current user (from auth store)
-const currentUser = computed(() => authStore.user || { id: 1, role: 'super_admin' })
+const currentUser = computed(() => authStore.user || { id: 1 })
 
 // Stats
 const stats = computed(() => {
   const total = admins.value.length
-  const active = admins.value.filter(a => a.status === 'active').length
-  const pending = admins.value.filter(a => a.status === 'pending').length
-  const superAdmins = admins.value.filter(a => a.role === 'super_admin').length
+  const active = admins.value.filter(a => a.is_active).length
+  const recentlyActive = admins.value.filter(a => {
+    if (!a.last_login) return false
+    const lastLogin = new Date(a.last_login)
+    const today = new Date()
+    return lastLogin.toDateString() === today.toDateString()
+  }).length
+  const newThisWeek = admins.value.filter(a => {
+    const created = new Date(a.created_at)
+    const weekAgo = new Date()
+    weekAgo.setDate(weekAgo.getDate() - 7)
+    return created >= weekAgo
+  }).length
 
-  return { total, active, pending, superAdmins }
+  return { total, active, recentlyActive, newThisWeek }
 })
 
 // Table headers
 const headers = ref([
   { title: 'Administrator', key: 'adminInfo', sortable: true },
   { title: 'Username', key: 'username', sortable: true },
-  { title: 'Role', key: 'role', sortable: true },
-  { title: 'Department', key: 'department', sortable: true },
-  { title: 'Status', key: 'status', sortable: true },
-  { title: 'Last Login', key: 'lastLogin', sortable: true },
-  { title: 'Created', key: 'createdAt', sortable: true },
+  { title: 'Email', key: 'email', sortable: true },
+  { title: 'Status', key: 'is_active', sortable: true },
+  { title: 'Last Login', key: 'last_login', sortable: true },
+  { title: 'Created', key: 'created_at', sortable: true },
   { title: 'Actions', key: 'actions', sortable: false, align: 'end' }
 ])
 
 // Filter and sort options
-const roleOptions = [
-  { title: 'Super Admin', value: 'super_admin' },
-  { title: 'Admin', value: 'admin' },
-  { title: 'Operator', value: 'operator' },
-  { title: 'Viewer', value: 'viewer' }
-]
-
 const statusOptions = [
   { title: 'Active', value: 'active' },
-  { title: 'Inactive', value: 'inactive' },
-  { title: 'Pending', value: 'pending' },
-  { title: 'Suspended', value: 'suspended' }
-]
-
-const departmentOptions = [
-  'Clinical Services',
-  'Laboratory',
-  'Pharmacy',
-  'Administration',
-  'IT Support',
-  'Quality Assurance',
-  'Research'
+  { title: 'Inactive', value: 'inactive' }
 ]
 
 const sortOptions = [
-  { title: 'Newest First', value: 'createdAt' },
-  { title: 'Oldest First', value: 'createdAt_asc' },
-  { title: 'Name A-Z', value: 'name' },
-  { title: 'Name Z-A', value: 'name_desc' },
-  { title: 'Role', value: 'role' },
-  { title: 'Last Login', value: 'lastLogin' }
+  { title: 'Newest First', value: 'created_at' },
+  { title: 'Oldest First', value: 'created_at_asc' },
+  { title: 'Name A-Z', value: 'full_name' },
+  { title: 'Name Z-A', value: 'full_name_desc' },
+  { title: 'Last Login', value: 'last_login' },
+  { title: 'Username', value: 'username' }
 ]
 
 // Computed properties
 const filteredAdmins = computed(() => {
   let filtered = admins.value
 
-  // Role filter
-  if (roleFilter.value) {
-    filtered = filtered.filter(a => a.role === roleFilter.value)
-  }
-
   // Status filter
   if (statusFilter.value) {
-    filtered = filtered.filter(a => a.status === statusFilter.value)
+    filtered = filtered.filter(a => 
+      statusFilter.value === 'active' ? a.is_active : !a.is_active
+    )
   }
 
   // Search filter
   if (search.value) {
     const query = search.value.toLowerCase()
     filtered = filtered.filter(a => 
-      a.name.toLowerCase().includes(query) ||
-      a.email.toLowerCase().includes(query) ||
-      a.username.toLowerCase().includes(query) ||
-      a.department.toLowerCase().includes(query)
+      a.full_name.toLowerCase().includes(query) ||
+      a.email?.toLowerCase().includes(query) ||
+      a.username.toLowerCase().includes(query)
     )
   }
 
@@ -607,58 +690,61 @@ const filteredAdmins = computed(() => {
 })
 
 const hasActiveFilters = computed(() => {
-  return search.value || roleFilter.value || statusFilter.value
+  return search.value || statusFilter.value
 })
 
+function addAdmin() {
+  selectedAdmin.value = null
+  isEditMode.value = false
+  adminForm.value = {
+    id: null,
+    username: '',
+    full_name: '',
+    email: '',
+    is_active: true,
+    password: '',
+    confirmPassword: ''
+  }
+  showAdminDialog.value = true // Fixed: Setting the correct dialog control variable
+}
+
+function editAdmin(admin) {
+  selectedAdmin.value = admin
+  adminForm.value = { 
+    id: admin.id,
+    username: admin.username,
+    full_name: admin.full_name,
+    email: admin.email || '',
+    is_active: admin.is_active
+  }
+  isEditMode.value = true
+  showAdminDialog.value = true
+}
+
+function closeAdminDialog() {
+  showAdminDialog.value = false
+  isEditMode.value = false
+  adminForm.value = {
+    id: null,
+    username: '',
+    full_name: '',
+    email: '',
+    is_active: true,
+    password: '',
+    confirmPassword: ''
+  }
+  showPassword.value = false
+  showConfirmPassword.value = false
+}
+
+
 // Methods
-function getRoleColor(role) {
-  const colors = {
-    'super_admin': 'deep-purple',
-    'admin': 'primary',
-    'operator': 'teal',
-    'viewer': 'grey'
-  }
-  return colors[role] || 'grey'
+function getStatusColor(isActive) {
+  return isActive ? 'success' : 'error'
 }
 
-function getRoleIcon(role) {
-  const icons = {
-    'super_admin': 'mdi-security',
-    'admin': 'mdi-account-cog',
-    'operator': 'mdi-account-hard-hat',
-    'viewer': 'mdi-account-eye'
-  }
-  return icons[role] || 'mdi-account'
-}
-
-function getStatusColor(status) {
-  const colors = {
-    'active': 'success',
-    'inactive': 'error',
-    'pending': 'warning',
-    'suspended': 'grey'
-  }
-  return colors[status] || 'grey'
-}
-
-function getStatusIcon(status) {
-  const icons = {
-    'active': 'mdi-check-circle',
-    'inactive': 'mdi-close-circle',
-    'pending': 'mdi-clock',
-    'suspended': 'mdi-pause-circle'
-  }
-  return icons[status] || 'mdi-help-circle'
-}
-
-function formatRole(role) {
-  const roles = {
-    'super_admin': 'Super Admin',
-    'admin': 'Admin',
-    'operator': 'Operator',
-    'viewer': 'Viewer'
-  }
-  return roles[role] || role
+function getStatusIcon(isActive) {
+  return isActive ? 'mdi-check-circle' : 'mdi-close-circle'
 }
 
 function formatDate(dateString) {
@@ -667,6 +753,17 @@ function formatDate(dateString) {
     year: 'numeric',
     month: 'short',
     day: 'numeric'
+  })
+}
+
+function formatDateTime(dateString) {
+  if (!dateString) return 'N/A'
+  return new Date(dateString).toLocaleString('en-US', {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit'
   })
 }
 
@@ -693,53 +790,21 @@ function getInitials(name) {
     .substring(0, 2)
 }
 
-function getRolePermissions(role) {
-  const permissions = {
-    'super_admin': [
-      'Full system access',
-      'User management',
-      'System configuration',
-      'Audit logs access',
-      'Data export permissions'
-    ],
-    'admin': [
-      'Patient management',
-      'DLT verification',
-      'Biometric management',
-      'Limited user management',
-      'Reports access'
-    ],
-    'operator': [
-      'Patient enrollment',
-      'Basic data entry',
-      'Limited patient viewing',
-      'No user management'
-    ],
-    'viewer': [
-      'Read-only access',
-      'Patient data viewing',
-      'Report viewing',
-      'No modifications'
-    ]
-  }
-  return permissions[role] || []
-}
-
 function sortAdmins(admins, sortKey) {
   const sorted = [...admins]
   switch (sortKey) {
-    case 'createdAt':
-      return sorted.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
-    case 'createdAt_asc':
-      return sorted.sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt))
-    case 'name':
-      return sorted.sort((a, b) => a.name.localeCompare(b.name))
-    case 'name_desc':
-      return sorted.sort((a, b) => b.name.localeCompare(a.name))
-    case 'role':
-      return sorted.sort((a, b) => a.role.localeCompare(b.role))
-    case 'lastLogin':
-      return sorted.sort((a, b) => new Date(b.lastLogin || 0) - new Date(a.lastLogin || 0))
+    case 'created_at':
+      return sorted.sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
+    case 'created_at_asc':
+      return sorted.sort((a, b) => new Date(a.created_at) - new Date(b.created_at))
+    case 'full_name':
+      return sorted.sort((a, b) => a.full_name.localeCompare(b.full_name))
+    case 'full_name_desc':
+      return sorted.sort((a, b) => b.full_name.localeCompare(a.full_name))
+    case 'last_login':
+      return sorted.sort((a, b) => new Date(b.last_login || 0) - new Date(a.last_login || 0))
+    case 'username':
+      return sorted.sort((a, b) => a.username.localeCompare(b.username))
     default:
       return sorted
   }
@@ -747,37 +812,14 @@ function sortAdmins(admins, sortKey) {
 
 function clearFilters() {
   search.value = ''
-  roleFilter.value = ''
   statusFilter.value = ''
-}
-
-function closeAdminDialog() {
-  showAdminDialog.value = false
-  isEditMode.value = false
-  adminForm.value = {
-    id: null,
-    name: '',
-    username: '',
-    email: '',
-    phone: '',
-    role: 'admin',
-    department: '',
-    password: '',
-    confirmPassword: ''
-  }
-  showPassword.value = false
-  showConfirmPassword.value = false
-  if (adminForm.value) {
-    adminForm.value.reset()
-  }
 }
 
 // Validation rules
 const requiredRule = value => !!value || 'This field is required'
-const emailRule = value => /.+@.+\..+/.test(value) || 'Valid email is required'
+const emailRule = value => !value || /.+@.+\..+/.test(value) || 'Valid email is required'
 const usernameRule = value => /^[a-zA-Z0-9_]+$/.test(value) || 'Username can only contain letters, numbers, and underscores'
-const phoneRule = value => !value || /^[\+]?[1-9][\d]{0,15}$/.test(value.replace(/[\s\-\(\)]/g, '')) || 'Valid phone number is required'
-const passwordRule = value => value.length >= 8 || 'Password must be at least 8 characters'
+const passwordRule = value => value.length >= 6 || 'Password must be at least 6 characters'
 const confirmPasswordRule = value => value === adminForm.value.password || 'Passwords must match'
 
 function showSnackbar(message, color = 'success') {
@@ -788,41 +830,40 @@ function showSnackbar(message, color = 'success') {
   }
 }
 
-function editAdmin(admin) {
+function viewAdminDetails(admin) {
   selectedAdmin.value = admin
-  adminForm.value = { ...admin }
-  isEditMode.value = true
-  showAdminDialog.value = true
-}
-
-function addAdmin() {
-  selectedAdmin.value = null
-  isEditMode.value = false
-  showAdminDialog.value = true
+  showDetailsDialog.value = true
 }
 
 async function saveAdmin() {
-  if (!adminForm.value?.validate()) return
+  if (!valid.value) return
 
   saving.value = true
   try {
     if (isEditMode.value) {
       // Update existing admin
+      const response = await adminApi.update(adminForm.value.id, {
+        full_name: adminForm.value.full_name,
+        email: adminForm.value.email,
+        is_active: adminForm.value.is_active
+      })
+      
       const index = admins.value.findIndex(a => a.id === adminForm.value.id)
       if (index !== -1) {
-        admins.value[index] = { ...admins.value[index], ...adminForm.value }
+        admins.value[index] = { ...admins.value[index], ...response.data.admin }
       }
       showSnackbar('Administrator updated successfully')
     } else {
       // Create new admin
-      const newAdmin = {
-        id: Date.now(),
-        ...adminForm.value,
-        status: 'active',
-        createdAt: new Date().toISOString(),
-        lastLogin: null
-      }
-      admins.value.unshift(newAdmin)
+      const response = await adminApi.create({
+        username: adminForm.value.username,
+        full_name: adminForm.value.full_name,
+        email: adminForm.value.email,
+        password: adminForm.value.password,
+        is_active: adminForm.value.is_active
+      })
+      
+      admins.value.unshift(response.data.admin)
       showSnackbar('Administrator created successfully')
     }
     
@@ -830,7 +871,7 @@ async function saveAdmin() {
     
   } catch (error) {
     console.error('Error saving admin:', error)
-    showSnackbar('Failed to save administrator: ' + (error.response?.data?.message || error.message), 'error')
+    showSnackbar('Failed to save administrator: ' + (error.response?.data?.error || error.message), 'error')
   } finally {
     saving.value = false
   }
@@ -840,10 +881,12 @@ async function toggleAdminStatus(admin) {
   admin.togglingStatus = true
   
   try {
-    const newStatus = admin.status === 'active' ? 'inactive' : 'active'
-    admin.status = newStatus
+    const response = await adminApi.update(admin.id, {
+      is_active: !admin.is_active
+    })
     
-    showSnackbar(`Administrator ${newStatus === 'active' ? 'activated' : 'deactivated'} successfully`)
+    admin.is_active = !admin.is_active
+    showSnackbar(`Administrator ${admin.is_active ? 'activated' : 'deactivated'} successfully`)
     
   } catch (error) {
     console.error('Error toggling admin status:', error)
@@ -854,13 +897,14 @@ async function toggleAdminStatus(admin) {
 }
 
 async function deleteAdmin(admin) {
-  if (!confirm(`Are you sure you want to delete administrator ${admin.name}? This action cannot be undone.`)) {
+  if (!confirm(`Are you sure you want to delete administrator ${admin.full_name}? This action cannot be undone.`)) {
     return
   }
 
   admin.deleting = true
   
   try {
+    await adminApi.delete(admin.id)
     const index = admins.value.findIndex(a => a.id === admin.id)
     if (index !== -1) {
       admins.value.splice(index, 1)
@@ -876,78 +920,28 @@ async function deleteAdmin(admin) {
   }
 }
 
-function viewPermissions(admin) {
-  selectedAdmin.value = admin
-  showPermissionsDialog.value = true
-}
-
-async function refreshData() {
+async function loadAdmins() {
   loading.value = true
   try {
-    // Mock data for demonstration - replace with actual API call
-    admins.value = [
-      {
-        id: 1,
-        name: 'System Administrator',
-        username: 'sysadmin',
-        email: 'admin@hivsystem.com',
-        phone: '+255123456789',
-        role: 'super_admin',
-        department: 'IT Support',
-        status: 'active',
-        createdAt: '2024-01-01T00:00:00Z',
-        lastLogin: '2024-01-25T14:30:00Z'
-      },
-      {
-        id: 2,
-        name: 'Dr. Sarah Johnson',
-        username: 'sjohnson',
-        email: 's.johnson@clinic.com',
-        phone: '+255123456788',
-        role: 'admin',
-        department: 'Clinical Services',
-        status: 'active',
-        createdAt: '2024-01-05T09:15:00Z',
-        lastLogin: '2024-01-25T10:20:00Z'
-      },
-      {
-        id: 3,
-        name: 'Michael Chen',
-        username: 'mchen',
-        email: 'm.chen@lab.com',
-        phone: '+255123456787',
-        role: 'operator',
-        department: 'Laboratory',
-        status: 'active',
-        createdAt: '2024-01-10T14:45:00Z',
-        lastLogin: '2024-01-24T16:10:00Z'
-      },
-      {
-        id: 4,
-        name: 'Emily Rodriguez',
-        username: 'erodriguez',
-        email: 'e.rodriguez@pharmacy.com',
-        phone: '+255123456786',
-        role: 'viewer',
-        department: 'Pharmacy',
-        status: 'pending',
-        createdAt: '2024-01-15T11:30:00Z',
-        lastLogin: null
-      }
-    ]
+    const response = await adminApi.getAll()
+    admins.value = response.data.admins
     
-    showSnackbar('Data refreshed successfully')
   } catch (error) {
-    console.error('Error refreshing data:', error)
-    showSnackbar('Failed to refresh data', 'error')
+    console.error('Error loading admins:', error)
+    showSnackbar('Failed to load administrators', 'error')
   } finally {
     loading.value = false
   }
 }
 
+async function refreshData() {
+  await loadAdmins()
+  showSnackbar('Data refreshed successfully')
+}
+
 // Lifecycle
 onMounted(() => {
-  refreshData()
+  loadAdmins()
 })
 </script>
 
