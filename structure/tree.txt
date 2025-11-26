@@ -1,0 +1,64 @@
+Directory Tree — Generated on 11/5/2025, 18:20:13
+Root: v1.0
+
+v1.0/
+├─ index.html
+├─ package-lock.json
+├─ package.json
+├─ vite.config.js
+├─ public/
+│  ├─ db.json
+│  └─ vite.svg
+└─ src/
+   ├─ App.vue
+   ├─ main.js
+   ├─ api/
+   │  ├─ ai.js
+   │  ├─ auth.js
+   │  ├─ devices.js
+   │  ├─ http.js
+   │  ├─ patients.js
+   │  └─ users.js
+   ├─ assets/
+   │  ├─ vue.svg
+   │  ├─ fonts/
+   │  ├─ icons/
+   │  └─ images/
+   │     └─ logo.jpeg
+   ├─ components/
+   │  ├─ charts/
+   │  ├─ layout/
+   │  │  ├─ Footer.vue
+   │  │  ├─ Header.vue
+   │  │  └─ Sidebar.vue
+   │  └─ ui/
+   │     └─ Button.vue
+   ├─ composables/
+   │  └─ useAuth.js
+   ├─ layouts/
+   │  ├─ AdminLayout.vue
+   │  └─ PublicLayout.vue
+   ├─ pages/
+   │  ├─ Login.vue
+   │  ├─ Register.vue
+   │  └─ admin/
+   │     ├─ AIAnalysis.vue
+   │     ├─ Billing.vue
+   │     ├─ Dashboard.vue
+   │     ├─ Devices.vue
+   │     ├─ Patients.vue
+   │     └─ settings/
+   │        ├─ Notifications.vue
+   │        ├─ Profile.vue
+   │        ├─ Security.vue
+   │        ├─ SettingsLayout.vue
+   │        └─ System.vue
+   ├─ plugins/
+   │  └─ vuetify.js
+   ├─ router/
+   │  └─ index.js
+   ├─ store/
+   │  └─ auth.js
+   └─ styles/
+      ├─ style.css
+      └─ variables.scss
