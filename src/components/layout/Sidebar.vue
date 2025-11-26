@@ -139,14 +139,14 @@ const menu = ref([
     title: 'Patient Management', 
     to: '/admin/patients', 
     icon: 'mdi-account-group',
-    badge: '12',
+    badge: null,
     description: 'Manage patient records and data'
   },
   { 
     title: 'DLT Verification', 
     to: '/admin/dlt-verification', 
     icon: 'mdi-notebook',
-    badge: '3',
+    badge: null,
     description: 'Verify data integrity on blockchain'
   },
   { 
@@ -160,7 +160,7 @@ const menu = ref([
     title: 'Audit & Security', 
     to: '/admin/audit-security', 
     icon: 'mdi-shield-account',
-    badge: '5',
+    badge: null,
     description: 'System logs and security monitoring'
   },
   { 

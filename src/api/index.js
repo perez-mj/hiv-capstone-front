@@ -24,21 +24,31 @@ export const auditApi = {
   getStats: () => http.get('/audit/stats')
 }
 
-// DLT API
+// DLT API section
 export const dltApi = {
   verify: (patientId) => http.get(`/dlt/verify/${patientId}`),
   createHash: (patientId) => http.post(`/dlt/hash/${patientId}`),
-  getHashes: (patientId) => http.get(`/dlt/hashes/${patientId}`)
+  getHashes: (patientId) => patientId ? http.get(`/dlt/hashes/${patientId}`) : http.get('/dlt/hashes'),
+  getStats: () => http.get('/dlt/stats') // You might want to add this endpoint
 }
 
 // Biometric API
 export const biometricApi = {
-  verify: (biometricId) => http.get(`/biometric/verify/${biometricId}`),
+  // Get all biometric links
+  getLinks: () => http.get('/biometric/links'),
+  
+  // Create new biometric link
   link: (data) => http.post('/biometric/link', data),
-  unlink: (biometricId) => http.delete(`/biometric/unlink/${biometricId}`),
-  getLinks: (patientId) => http.get(`/biometric/links/${patientId}`),
+  
+  // Verify biometric
+  verify: (biometricId) => http.get(`/biometric/verify/${biometricId}`),
+  
+  // Unlink biometric
+  unlink: (id) => http.delete(`/biometric/unlink/${id}`),
+  
+  // Get stats
   getStats: () => http.get('/biometric/stats')
-}
+};
 
 // Dashboard API - Combine data from multiple endpoints with better error handling
 // frontend/src/api/index.js - Improved dashboard API
@@ -80,9 +90,29 @@ export const dashboardApi = {
         total_actions_30d: 0
       };
 
-      const biometricData = biometricStats.status === 'fulfilled' ? biometricStats.value.data : {
-        active_biometric_links: 0
-      };
+      // Handle biometric stats - your endpoint returns { success: true, data: { active: X, total: Y, ... } }
+      let biometricData = { active_biometric_links: 0 };
+      
+      if (biometricStats.status === 'fulfilled') {
+        const bioResponse = biometricStats.value;
+        
+        // Extract the actual data from the nested structure
+        const bioData = bioResponse.data?.data || {};
+        
+        // Map 'active' to 'active_biometric_links' for dashboard compatibility
+        biometricData = {
+          active_biometric_links: bioData.active || 0,
+          // Include all original data for potential future use
+          ...bioData
+        };
+        
+        console.log('Biometric stats processed:', {
+          fullResponse: bioResponse,
+          extractedData: bioData,
+          activeCount: bioData.active,
+          finalBiometricData: biometricData
+        });
+      }
 
       // Calculate DLT stats
       const dltStats = {
@@ -93,7 +123,8 @@ export const dashboardApi = {
       console.log('Dashboard data processed:', {
         patients: patientsData.total,
         audit: auditData.total_actions_24h,
-        biometric: biometricData.active_biometric_links
+        biometric: biometricData.active_biometric_links,
+        biometricSuccess: biometricStats.status === 'fulfilled'
       });
 
       return {
@@ -102,7 +133,7 @@ export const dashboardApi = {
           audit: auditData,
           dlt: dltStats,
           biometric: biometricData,
-          system_uptime: Math.floor(Math.random() * 86400) + 3600 // Mock uptime for now
+          system_uptime: Math.floor(Math.random() * 86400) + 3600
         }
       };
     } catch (error) {

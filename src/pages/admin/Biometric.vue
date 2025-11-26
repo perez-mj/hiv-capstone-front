@@ -42,8 +42,8 @@
         <v-card elevation="2" border>
           <v-card-text class="text-center">
             <v-icon color="warning" size="48" class="mb-2">mdi-account-clock</v-icon>
-            <div class="text-h5 font-weight-bold">{{ stats.pending }}</div>
-            <div class="text-body-2 text-medium-emphasis">Pending</div>
+            <div class="text-h5 font-weight-bold">{{ stats.inactive }}</div>
+            <div class="text-body-2 text-medium-emphasis">Inactive</div>
           </v-card-text>
         </v-card>
       </v-col>
@@ -67,7 +67,7 @@
               v-model="search"
               density="comfortable"
               variant="outlined"
-              placeholder="Search by Patient ID, Name, or Biometric ID..."
+              placeholder="Search by Patient ID, Name, or Biometric Hash..."
               prepend-inner-icon="mdi-magnify"
               hide-details
               clearable
@@ -149,12 +149,12 @@
           <template v-slot:item.biometricId="{ item }">
             <div class="d-flex align-center">
               <v-avatar size="32" color="deep-purple" class="mr-3">
-                <v-icon size="18" color="white">mdi-fingerprint</v-icon>
+                <v-icon size="18" color="white">{{ getBiometricIcon(item.biometricType) }}</v-icon>
               </v-avatar>
               <div>
                 <div class="font-weight-medium text-primary">{{ item.biometricId }}</div>
                 <div class="text-caption text-medium-emphasis">
-                  {{ item.biometricType }}
+                  {{ formatBiometricType(item.biometricType) }}
                 </div>
               </div>
             </div>
@@ -175,6 +175,17 @@
                 </div>
               </div>
             </div>
+          </template>
+
+          <!-- Type Column -->
+          <template v-slot:item.biometricType="{ item }">
+            <v-chip 
+              size="small"
+              variant="outlined"
+              :prepend-icon="getBiometricIcon(item.biometricType)"
+            >
+              {{ formatBiometricType(item.biometricType) }}
+            </v-chip>
           </template>
 
           <!-- Status Column -->
@@ -219,18 +230,19 @@
                 prepend-icon="mdi-shield-check"
                 @click="verifyBiometric(item)"
                 :loading="item.verifying"
+                :disabled="item.status !== 'active'"
               >
                 Verify
               </v-btn>
               <v-btn
                 size="small"
                 variant="outlined"
-                color="error"
-                prepend-icon="mdi-link-off"
-                @click="unlinkBiometric(item)"
+                :color="item.status === 'active' ? 'error' : 'success'"
+                :prepend-icon="item.status === 'active' ? 'mdi-link-off' : 'mdi-link-plus'"
+                @click="toggleBiometricLink(item)"
                 :loading="item.unlinking"
               >
-                Unlink
+                {{ item.status === 'active' ? 'Unlink' : 'Activate' }}
               </v-btn>
               <v-btn
                 size="small"
@@ -289,6 +301,7 @@
                   :rules="[requiredRule]"
                   placeholder="Search for patient..."
                   prepend-inner-icon="mdi-account-search"
+                  :loading="loadingPatients"
                 >
                   <template v-slot:item="{ props, item }">
                     <v-list-item v-bind="props">
@@ -296,7 +309,7 @@
                         <div class="font-weight-medium">{{ item.raw.name }}</div>
                       </template>
                       <template v-slot:subtitle>
-                        <div class="text-caption">{{ item.raw.patient_id }} \u2022 {{ item.raw.hiv_status }}</div>
+                        <div class="text-caption">{{ item.raw.patient_id }}</div>
                       </template>
                     </v-list-item>
                   </template>
@@ -322,8 +335,9 @@
                   variant="outlined"
                   density="comfortable"
                   :rules="[requiredRule]"
-                  placeholder="Enter biometric data or scan..."
-                  :append-inner-icon="newLink.biometricType === 'fingerprint' ? 'mdi-fingerprint' : 'mdi-face-recognition'"
+                  :placeholder="getBiometricPlaceholder(newLink.biometricType)"
+                  :append-inner-icon="getBiometricIcon(newLink.biometricType)"
+                  type="password"
                 />
               </v-col>
 
@@ -418,6 +432,7 @@ import { biometricApi, patientsApi } from '@/api'
 
 // Reactive state
 const loading = ref(false)
+const loadingPatients = ref(false)
 const adding = ref(false)
 const search = ref('')
 const statusFilter = ref('')
@@ -437,24 +452,17 @@ const snackbar = ref({
   color: 'success'
 })
 
+const stats = ref({
+  total: 0,
+  active: 0,
+  inactive: 0,
+  today: 0
+})
+
 const newLink = ref({
   patientId: '',
   biometricType: 'fingerprint',
   biometricData: ''
-})
-
-// Stats
-const stats = computed(() => {
-  const total = biometricLinks.value.length
-  const active = biometricLinks.value.filter(l => l.status === 'active').length
-  const pending = biometricLinks.value.filter(l => l.status === 'pending').length
-  const today = biometricLinks.value.filter(l => {
-    const linkDate = new Date(l.linkedDate)
-    const today = new Date()
-    return linkDate.toDateString() === today.toDateString()
-  }).length
-
-  return { total, active, pending, today }
 })
 
 // Table headers
@@ -471,9 +479,7 @@ const headers = ref([
 // Filter and sort options
 const statusOptions = [
   { title: 'Active', value: 'active' },
-  { title: 'Inactive', value: 'inactive' },
-  { title: 'Pending', value: 'pending' },
-  { title: 'Expired', value: 'expired' }
+  { title: 'Inactive', value: 'inactive' }
 ]
 
 const typeOptions = [
@@ -488,14 +494,6 @@ const biometricTypes = [
   { title: 'Facial Recognition', value: 'facial' },
   { title: 'Iris Scan', value: 'iris' },
   { title: 'Voice Print', value: 'voice' }
-]
-
-const sortOptions = [
-  { title: 'Newest First', value: 'linkedDate' },
-  { title: 'Oldest First', value: 'linkedDate_asc' },
-  { title: 'Patient Name', value: 'patientName' },
-  { title: 'Biometric ID', value: 'biometricId' },
-  { title: 'Status', value: 'status' }
 ]
 
 // Computed properties
@@ -517,7 +515,7 @@ const filteredLinks = computed(() => {
     const query = search.value.toLowerCase()
     filtered = filtered.filter(l => 
       l.patientId.toLowerCase().includes(query) ||
-      l.patientName.toLowerCase().includes(query) ||
+      (l.patientName && l.patientName.toLowerCase().includes(query)) ||
       l.biometricId.toLowerCase().includes(query)
     )
   }
@@ -534,9 +532,7 @@ const hasActiveFilters = computed(() => {
 function getStatusColor(status) {
   const colors = {
     'active': 'success',
-    'inactive': 'error',
-    'pending': 'warning',
-    'expired': 'grey'
+    'inactive': 'error'
   }
   return colors[status] || 'grey'
 }
@@ -544,11 +540,39 @@ function getStatusColor(status) {
 function getStatusIcon(status) {
   const icons = {
     'active': 'mdi-check-circle',
-    'inactive': 'mdi-close-circle',
-    'pending': 'mdi-clock',
-    'expired': 'mdi-alert-circle'
+    'inactive': 'mdi-close-circle'
   }
   return icons[status] || 'mdi-help-circle'
+}
+
+function getBiometricIcon(type) {
+  const icons = {
+    'fingerprint': 'mdi-fingerprint',
+    'facial': 'mdi-face-recognition',
+    'iris': 'mdi-eye-outline',
+    'voice': 'mdi-microphone'
+  }
+  return icons[type] || 'mdi-fingerprint'
+}
+
+function formatBiometricType(type) {
+  const types = {
+    'fingerprint': 'Fingerprint',
+    'facial': 'Facial Recognition',
+    'iris': 'Iris Scan',
+    'voice': 'Voice Print'
+  }
+  return types[type] || type
+}
+
+function getBiometricPlaceholder(type) {
+  const placeholders = {
+    'fingerprint': 'Enter fingerprint data or scan...',
+    'facial': 'Enter facial recognition data...',
+    'iris': 'Enter iris scan data...',
+    'voice': 'Enter voice print data...'
+  }
+  return placeholders[type] || 'Enter biometric data...'
 }
 
 function formatDate(dateString) {
@@ -575,6 +599,7 @@ function formatTimeAgo(dateString) {
 }
 
 function getInitials(name) {
+  if (!name) return '??'
   return name
     .split(' ')
     .map(part => part.charAt(0))
@@ -591,7 +616,7 @@ function sortLinks(links, sortKey) {
     case 'linkedDate_asc':
       return sorted.sort((a, b) => new Date(a.linkedDate) - new Date(b.linkedDate))
     case 'patientName':
-      return sorted.sort((a, b) => a.patientName.localeCompare(b.patientName))
+      return sorted.sort((a, b) => (a.patientName || '').localeCompare(b.patientName || ''))
     case 'biometricId':
       return sorted.sort((a, b) => a.biometricId.localeCompare(b.biometricId))
     case 'status':
@@ -630,30 +655,59 @@ function showSnackbar(message, color = 'success') {
   }
 }
 
+async function fetchPatients() {
+  loadingPatients.value = true
+  try {
+    const patientsResponse = await patientsApi.getAll({ limit: 1000 })
+    patients.value = patientsResponse.data.patients || []
+  } catch (error) {
+    console.error('Error fetching patients:', error)
+    showSnackbar('Failed to load patients: ' + (error.response?.data?.message || error.message), 'error')
+  } finally {
+    loadingPatients.value = false
+  }
+}
+
+async function fetchStats() {
+  try {
+    const response = await biometricApi.getStats()
+    if (response.data.success) {
+      stats.value = {
+        total: response.data.data.total || 0,
+        active: response.data.data.active || 0,
+        inactive: response.data.data.inactive || 0,
+        today: response.data.data.today || 0
+      }
+    }
+  } catch (error) {
+    console.error('Error fetching stats:', error)
+    // Don't show snackbar for stats errors as they're less critical
+  }
+}
+
 async function addBiometricLink() {
   if (!addForm.value?.validate()) return
 
   adding.value = true
   try {
-    // Replace with actual API call
-    // const response = await biometricApi.link(newLink.value)
+    const response = await biometricApi.link(newLink.value)
     
-    // Mock success response
-    const newBiometricLink = {
-      id: Date.now(),
-      biometricId: `BIO-${Date.now()}`,
-      patientId: newLink.value.patientId,
-      patientName: patients.value.find(p => p.patient_id === newLink.value.patientId)?.name || 'Unknown',
-      biometricType: newLink.value.biometricType,
-      status: 'active',
-      linkedDate: new Date().toISOString(),
-      lastVerified: null
+    if (response.data.success) {
+      // Add the new link to the beginning of the list
+      biometricLinks.value.unshift({
+        ...response.data.biometric_link,
+        verifying: false,
+        unlinking: false
+      })
+      
+      // Update stats
+      await fetchStats()
+      
+      showAddDialog.value = false
+      showSnackbar('Biometric link created successfully')
+    } else {
+      throw new Error(response.data.message)
     }
-
-    biometricLinks.value.unshift(newBiometricLink)
-    
-    showAddDialog.value = false
-    showSnackbar('Biometric link created successfully')
     
   } catch (error) {
     console.error('Error creating biometric link:', error)
@@ -667,63 +721,82 @@ async function verifyBiometric(link) {
   link.verifying = true
   
   try {
-    console.log('Verifying biometric for:', link.biometricId)
+    const response = await biometricApi.verify(link.biometricId)
     
-    // Replace with actual API call
-    // const response = await biometricApi.verify(link.biometricId)
-    
-    // Mock verification
-    const success = Math.random() > 0.2 // 80% success rate for demo
+    // Handle the actual backend response structure
+    const verificationSuccess = response.data.verified === true
     
     verificationResult.value = {
-      success,
-      message: success 
-        ? 'Biometric identity verified successfully' 
+      success: verificationSuccess,
+      message: verificationSuccess 
+        ? 'Biometric verified successfully' 
         : 'Biometric verification failed',
+      patientName: response.data.patient?.name || link.patientName,
+      patientId: response.data.patient?.patient_id || link.patientId,
+      biometricId: link.biometricId
+    }
+    
+    showVerificationDialog.value = true
+    
+    // Update last verified timestamp if successful
+    if (verificationSuccess) {
+      link.lastVerified = new Date().toISOString()
+    }
+    
+    showSnackbar(
+      verificationSuccess ? 'Biometric verified successfully' : 'Biometric verification failed',
+      verificationSuccess ? 'success' : 'error'
+    )
+    
+  } catch (error) {
+    console.error('Verification error:', error)
+    
+    // Handle case where verification fails
+    verificationResult.value = {
+      success: false,
+      message: 'Verification failed: ' + (error.response?.data?.message || error.message),
       patientName: link.patientName,
       patientId: link.patientId,
       biometricId: link.biometricId
     }
     
     showVerificationDialog.value = true
-    
-    // Update last verified timestamp
-    link.lastVerified = new Date().toISOString()
-    
-    showSnackbar(
-      success ? 'Biometric verified successfully' : 'Biometric verification failed',
-      success ? 'success' : 'error'
-    )
-    
-  } catch (error) {
-    console.error('Verification error:', error)
     showSnackbar('Verification failed: ' + (error.response?.data?.message || error.message), 'error')
   } finally {
     link.verifying = false
   }
 }
 
-async function unlinkBiometric(link) {
-  if (!confirm(`Are you sure you want to unlink biometric ${link.biometricId} from patient ${link.patientName}?`)) {
+async function toggleBiometricLink(link) {
+  const action = link.status === 'active' ? 'unlink' : 'activate'
+  const message = link.status === 'active' 
+    ? `Are you sure you want to unlink biometric ${link.biometricId} from patient ${link.patientName}?`
+    : `Are you sure you want to activate biometric ${link.biometricId} for patient ${link.patientName}?`
+
+  if (!confirm(message)) {
     return
   }
 
   link.unlinking = true
   
   try {
-    console.log('Unlinking biometric:', link.biometricId)
+    if (action === 'unlink') {
+      await biometricApi.unlink(link.id)
+      link.status = 'inactive'
+      showSnackbar('Biometric link deactivated successfully')
+    } else {
+      // For activation, you might need to create a new API endpoint
+      // For now, we'll just update locally
+      link.status = 'active'
+      showSnackbar('Biometric link activated successfully')
+    }
     
-    // Replace with actual API call
-    // await biometricApi.unlink(link.biometricId)
-    
-    // Update status to inactive
-    link.status = 'inactive'
-    
-    showSnackbar('Biometric link removed successfully')
+    // Update stats
+    await fetchStats()
     
   } catch (error) {
-    console.error('Error unlinking biometric:', error)
-    showSnackbar('Failed to unlink biometric: ' + (error.response?.data?.message || error.message), 'error')
+    console.error('Error toggling biometric link:', error)
+    showSnackbar('Failed to update biometric link: ' + (error.response?.data?.message || error.message), 'error')
   } finally {
     link.unlinking = false
   }
@@ -732,57 +805,34 @@ async function unlinkBiometric(link) {
 function viewDetails(link) {
   console.log('View details for:', link)
   // You can implement a detailed view modal here
+  showSnackbar(`Details for ${link.biometricId} - ${link.patientName}`, 'info')
 }
 
 async function refreshData() {
   loading.value = true
   try {
-    // Fetch patients for the dropdown
-    const patientsResponse = await patientsApi.getAll({ limit: 1000 })
-    patients.value = patientsResponse.data.patients || []
+    // Fetch patients for the dropdown using the correct API response structure
+    await fetchPatients()
 
-    // Fetch actual biometric links from your API
-    // const response = await biometricApi.getLinks()
-    // biometricLinks.value = response.data.biometric_links
+    // Fetch actual biometric links from API
+    const response = await biometricApi.getLinks()
+    if (response.data.success) {
+      biometricLinks.value = response.data.biometric_links.map(link => ({
+        ...link,
+        verifying: false,
+        unlinking: false
+      }))
+    } else {
+      throw new Error(response.data.message)
+    }
     
-    // Mock data for demonstration
-    biometricLinks.value = [
-      {
-        id: 1,
-        biometricId: 'BIO-1764145038945',
-        patientId: 'HIV-1764145038945-9769',
-        patientName: 'John Doe',
-        biometricType: 'fingerprint',
-        status: 'active',
-        linkedDate: '2024-01-15T10:30:00Z',
-        lastVerified: '2024-01-20T14:25:00Z'
-      },
-      {
-        id: 2,
-        biometricId: 'BIO-1764145038946',
-        patientId: 'HIV-1764145038946-1234',
-        patientName: 'Jane Smith',
-        biometricType: 'facial',
-        status: 'active',
-        linkedDate: '2024-01-14T14:20:00Z',
-        lastVerified: null
-      },
-      {
-        id: 3,
-        biometricId: 'BIO-1764145038947',
-        patientId: 'HIV-1764145038947-5678',
-        patientName: 'Bob Johnson',
-        biometricType: 'fingerprint',
-        status: 'pending',
-        linkedDate: '2024-01-13T09:15:00Z',
-        lastVerified: '2024-01-13T09:20:00Z'
-      }
-    ]
+    // Fetch stats
+    await fetchStats()
     
     showSnackbar('Data refreshed successfully')
   } catch (error) {
     console.error('Error refreshing data:', error)
-    showSnackbar('Failed to refresh data', 'error')
+    showSnackbar('Failed to refresh data: ' + (error.response?.data?.message || error.message), 'error')
   } finally {
     loading.value = false
   }

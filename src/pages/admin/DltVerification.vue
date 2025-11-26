@@ -275,6 +275,7 @@
   </v-container>
 </template>
 
+<!-- frontend/src/pages/admin/DltVerification.vue - Updated methods -->
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { dltApi } from '@/api'
@@ -297,20 +298,20 @@ const snackbar = ref({
 // Stats
 const stats = computed(() => {
   const total = verifications.value.length
-  const verified = verifications.value.filter(v => v.status === 'verified').length
-  const pending = verifications.value.filter(v => v.status === 'pending').length
-  const failed = verifications.value.filter(v => v.status === 'failed').length
+  const verified = verifications.value.filter(v => v.verified).length
+  const pending = verifications.value.filter(v => !v.verified && v.data_hash).length
+  const failed = verifications.value.filter(v => !v.verified && v.data_hash).length
 
   return { total, verified, pending, failed }
 })
 
 // Table headers
 const headers = ref([
-  { title: 'Patient ID', key: 'patientId', sortable: true },
+  { title: 'Patient ID', key: 'patient_id', sortable: true },
   { title: 'Name', key: 'name', sortable: true },
-  { title: 'Hash', key: 'hash', sortable: false },
+  { title: 'Hash', key: 'data_hash', sortable: false },
   { title: 'Timestamp', key: 'timestamp', sortable: true },
-  { title: 'Status', key: 'status', sortable: true },
+  { title: 'Status', key: 'verified', sortable: true },
   { title: 'Actions', key: 'actions', sortable: false, align: 'end' }
 ])
 
@@ -324,9 +325,9 @@ const statusOptions = [
 const sortOptions = [
   { title: 'Newest First', value: 'timestamp' },
   { title: 'Oldest First', value: 'timestamp_asc' },
-  { title: 'Patient ID', value: 'patientId' },
+  { title: 'Patient ID', value: 'patient_id' },
   { title: 'Name', value: 'name' },
-  { title: 'Status', value: 'status' }
+  { title: 'Status', value: 'verified' }
 ]
 
 // Computed properties
@@ -335,20 +336,23 @@ const filteredVerifications = computed(() => {
 
   // Status filter
   if (statusFilter.value) {
-    filtered = filtered.filter(v => v.status === statusFilter.value)
+    if (statusFilter.value === 'verified') {
+      filtered = filtered.filter(v => v.verified)
+    } else if (statusFilter.value === 'pending' || statusFilter.value === 'failed') {
+      filtered = filtered.filter(v => !v.verified && v.data_hash)
+    }
   }
 
   // Search filter
   if (search.value) {
     const query = search.value.toLowerCase()
     filtered = filtered.filter(v => 
-      v.patientId.toLowerCase().includes(query) ||
-      v.name.toLowerCase().includes(query) ||
-      v.hash.toLowerCase().includes(query)
+      v.patient_id.toLowerCase().includes(query) ||
+      (v.name && v.name.toLowerCase().includes(query)) ||
+      (v.data_hash && v.data_hash.toLowerCase().includes(query))
     )
   }
 
-  // Sorting
   return sortVerifications(filtered, sortBy.value)
 })
 
@@ -357,22 +361,16 @@ const hasActiveFilters = computed(() => {
 })
 
 // Methods
-function getStatusColor(status) {
-  const colors = {
-    'verified': 'success',
-    'pending': 'warning',
-    'failed': 'error'
-  }
-  return colors[status] || 'grey'
+function getStatusColor(verified) {
+  return verified ? 'success' : 'error'
 }
 
-function getStatusIcon(status) {
-  const icons = {
-    'verified': 'mdi-check-circle',
-    'pending': 'mdi-clock',
-    'failed': 'mdi-alert-circle'
-  }
-  return icons[status] || 'mdi-help-circle'
+function getStatusIcon(verified) {
+  return verified ? 'mdi-check-circle' : 'mdi-alert-circle'
+}
+
+function getStatusText(verified) {
+  return verified ? 'Verified' : 'Failed'
 }
 
 function truncateHash(hash, length = 16) {
@@ -404,6 +402,7 @@ function formatTimeAgo(dateString) {
 }
 
 function getInitials(name) {
+  if (!name) return 'NA'
   return name
     .split(' ')
     .map(part => part.charAt(0))
@@ -432,12 +431,12 @@ function sortVerifications(verifications, sortKey) {
       return sorted.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp))
     case 'timestamp_asc':
       return sorted.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp))
-    case 'patientId':
-      return sorted.sort((a, b) => a.patientId.localeCompare(b.patientId))
+    case 'patient_id':
+      return sorted.sort((a, b) => a.patient_id.localeCompare(b.patient_id))
     case 'name':
-      return sorted.sort((a, b) => a.name.localeCompare(b.name))
-    case 'status':
-      return sorted.sort((a, b) => a.status.localeCompare(b.status))
+      return sorted.sort((a, b) => (a.name || '').localeCompare(b.name || ''))
+    case 'verified':
+      return sorted.sort((a, b) => (b.verified ? 1 : 0) - (a.verified ? 1 : 0))
     default:
       return sorted
   }
@@ -460,24 +459,23 @@ async function verifyHash(verification) {
   verification.verifying = true
   
   try {
-    console.log('Verifying DLT hash for:', verification.patientId)
+    console.log('Verifying DLT hash for:', verification.patient_id)
     
-    // Simulate API call - replace with actual dltApi.verify call
-    const response = await dltApi.verify(verification.patientId)
+    const response = await dltApi.verify(verification.patient_id)
     
     verificationResult.value = {
       success: response.data.is_verified,
       message: response.data.is_verified 
         ? 'Data integrity verified on distributed ledger' 
         : 'Data integrity verification failed',
-      patientId: verification.patientId,
+      patientId: verification.patient_id,
       hash: response.data.current_hash
     }
     
     showVerificationDialog.value = true
     
-    // Update the verification status
-    verification.status = response.data.is_verified ? 'verified' : 'failed'
+    // Update the verification status locally
+    verification.verified = response.data.is_verified
     
     showSnackbar(
       response.data.is_verified ? 'Verification successful' : 'Verification failed',
@@ -500,40 +498,9 @@ function viewDetails(verification) {
 async function refreshData() {
   loading.value = true
   try {
-    // Fetch actual data from your API
+    // Fetch actual data from API
     const response = await dltApi.getHashes()
-    verifications.value = response.data.hashes
-    
-    // // For now, using mock data - replace with actual API call
-    // verifications.value = [
-    //   {
-    //     id: 1,
-    //     patientId: 'HIV-1764145038945-9769',
-    //     name: 'John Doe',
-    //     hash: 'd29639be864c797d07227dd659294b5a64c2fbc87b6397e3c4c7b54ab350dbd4',
-    //     timestamp: '2024-01-15T10:30:00Z',
-    //     status: 'verified',
-    //     dateOfBirth: '1985-05-15'
-    //   },
-    //   {
-    //     id: 2,
-    //     patientId: 'HIV-1764145038946-1234',
-    //     name: 'Jane Smith',
-    //     hash: 'a1b2c3d4e5f6789012345678901234567890123456789012345678901234',
-    //     timestamp: '2024-01-14T14:20:00Z',
-    //     status: 'pending',
-    //     dateOfBirth: '1990-08-22'
-    //   },
-    //   {
-    //     id: 3,
-    //     patientId: 'HIV-1764145038947-5678',
-    //     name: 'Bob Johnson',
-    //     hash: 'f6e5d4c3b2a1987654321098765432109876543210987654321098765432',
-    //     timestamp: '2024-01-13T09:15:00Z',
-    //     status: 'failed',
-    //     dateOfBirth: '1978-12-10'
-    //   }
-    // ]
+    verifications.value = response.data.hashes || []
     
     showSnackbar('Data refreshed successfully')
   } catch (error) {

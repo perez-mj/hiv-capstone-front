@@ -444,10 +444,17 @@ async function refreshData() {
   try {
     const response = await dashboardApi.getStats()
     stats.value = response.data
+
+    // Debug: check biometric data structure
+    console.log('Biometric data structure:', {
+      raw: response.data.biometric,
+      activeLinks: response.data.biometric?.active_biometric_links,
+      active: response.data.biometric?.active
+    })
     
     // Try to get recent logs separately
     try {
-      const logsResponse = await auditApi.getLogs({ limit: 5 })
+      const logsResponse = await auditApi.getLogs({ limit: 4 })
       recentLogs.value = logsResponse.data.logs
     } catch (logError) {
       console.warn('Could not fetch recent logs:', logError)
