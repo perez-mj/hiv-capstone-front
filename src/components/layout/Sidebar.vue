@@ -145,7 +145,7 @@ const menu = ref([
   { 
     title: 'DLT Verification', 
     to: '/admin/dlt-verification', 
-    icon: 'mdi-block-chain',
+    icon: 'mdi-notebook',
     badge: '3',
     description: 'Verify data integrity on blockchain'
   },

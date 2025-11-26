@@ -468,8 +468,26 @@ async function fetchPatients() {
     const response = await patientsApi.getAll({
       limit: 1000 // Get all patients for client-side filtering
     })
-    patients.value = response.data.patients || []
-    console.log('Patients loaded:', patients.value.length)
+    
+    // Remove duplicate patients (keep the latest one)
+    const uniquePatients = response.data.patients.reduce((acc, current) => {
+      const existing = acc.find(patient => patient.patient_id === current.patient_id);
+      if (!existing) {
+        acc.push(current);
+      } else {
+        // If duplicate found, keep the one with the latest created_at timestamp
+        const existingDate = new Date(existing.created_at);
+        const currentDate = new Date(current.created_at);
+        if (currentDate > existingDate) {
+          const index = acc.indexOf(existing);
+          acc[index] = current;
+        }
+      }
+      return acc;
+    }, []);
+    
+    patients.value = uniquePatients || [];
+    console.log('Patients loaded:', patients.value.length, 'Unique:', uniquePatients.length);
   } catch (err) {
     console.error('Error fetching patients:', err)
     error.value = err.response?.data?.message || 'Failed to load patients'

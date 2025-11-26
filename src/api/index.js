@@ -41,14 +41,26 @@ export const biometricApi = {
 }
 
 // Dashboard API - Combine data from multiple endpoints with better error handling
+// frontend/src/api/index.js - Improved dashboard API
 export const dashboardApi = {
   getStats: async () => {
     try {
+      console.log('Fetching dashboard statistics...');
+      
       // Fetch data from all endpoints in parallel with error handling
       const [patientsStats, auditStats, biometricStats] = await Promise.allSettled([
-        patientsApi.getStats(),
-        auditApi.getStats(),
-        biometricApi.getStats()
+        patientsApi.getStats().catch(err => {
+          console.warn('Failed to fetch patient stats:', err);
+          throw err;
+        }),
+        auditApi.getStats().catch(err => {
+          console.warn('Failed to fetch audit stats:', err);
+          throw err;
+        }),
+        biometricApi.getStats().catch(err => {
+          console.warn('Failed to fetch biometric stats:', err);
+          throw err;
+        })
       ]);
 
       // Process results with fallbacks
@@ -63,23 +75,26 @@ export const dashboardApi = {
 
       const auditData = auditStats.status === 'fulfilled' ? auditStats.value.data : {
         last_30_days: [],
-        last_24_hours: []
+        last_24_hours: [],
+        total_actions_24h: 0,
+        total_actions_30d: 0
       };
 
       const biometricData = biometricStats.status === 'fulfilled' ? biometricStats.value.data : {
         active_biometric_links: 0
       };
 
-      // Calculate DLT stats from patient data if available
-      let dltStats = { total_hashes: 0, verified_hashes: 0 };
-      if (patientsStats.status === 'fulfilled') {
-        // For now, we'll use the dlt_verified count from patient stats
-        // In a real implementation, you might want a separate DLT stats endpoint
-        dltStats = {
-          total_hashes: patientsData.total, // This is an approximation
-          verified_hashes: patientsData.dlt_verified || 0
-        };
-      }
+      // Calculate DLT stats
+      const dltStats = {
+        total_hashes: patientsData.total || 0,
+        verified_hashes: patientsData.dlt_verified || 0
+      };
+
+      console.log('Dashboard data processed:', {
+        patients: patientsData.total,
+        audit: auditData.total_actions_24h,
+        biometric: biometricData.active_biometric_links
+      });
 
       return {
         data: {
@@ -92,11 +107,25 @@ export const dashboardApi = {
       };
     } catch (error) {
       console.error('Error in dashboard API:', error);
-      // Return fallback data
+      // Return comprehensive fallback data
       return {
         data: {
-          patients: { total: 0, consented: 0, reactive: 0, non_reactive: 0, daily_enrollments: 0 },
-          audit: { last_30_days: [], last_24_hours: [] },
+          patients: { 
+            total: 0, 
+            consented: 0, 
+            reactive: 0, 
+            non_reactive: 0, 
+            daily_enrollments: 0,
+            consent_rate: 0,
+            reactive_rate: 0,
+            dlt_verification_rate: 0
+          },
+          audit: { 
+            last_30_days: [], 
+            last_24_hours: [],
+            total_actions_24h: 0,
+            total_actions_30d: 0
+          },
           dlt: { total_hashes: 0, verified_hashes: 0 },
           biometric: { active_biometric_links: 0 },
           system_uptime: 0
@@ -104,7 +133,7 @@ export const dashboardApi = {
       };
     }
   }
-}
+};
 
 export default {
   auth: authApi,
