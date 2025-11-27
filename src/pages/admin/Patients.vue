@@ -211,7 +211,6 @@
                   size="small"
                   :color="getDltStatusColor(patient.dlt_status)"
                   variant="flat"
-                  @click="verifyDltIntegrity(patient)"
                   style="cursor: pointer;"
                 >
                   <v-icon small left>{{ getDltStatusIcon(patient.dlt_status) }}</v-icon>
@@ -245,20 +244,6 @@
                         @click="editPatient(patient)"
                       >
                         mdi-pencil
-                      </v-icon>
-                    </template>
-                  </v-tooltip>
-
-                  <v-tooltip text="Verify DLT Integrity" location="top">
-                    <template v-slot:activator="{ props }">
-                      <v-icon
-                        v-bind="props"
-                        size="small"
-                        color="primary"
-                        class="me-2"
-                        @click="verifyDltIntegrity(patient)"
-                      >
-                        mdi-shield-check
                       </v-icon>
                     </template>
                   </v-tooltip>
@@ -328,13 +313,6 @@
       @saved="handlePatientSaved"
     />
 
-    <!-- DLT Verification Dialog -->
-    <dlt-verification-dialog
-      v-model="showDltDialog"
-      :patient="selectedPatient"
-      @verified="handleDltVerified"
-    />
-
     <!-- Snackbar for notifications -->
     <v-snackbar v-model="snackbar.show" :color="snackbar.color" timeout="3000">
       {{ snackbar.message }}
@@ -347,7 +325,6 @@ import { ref, computed, onMounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { patientsApi, dltApi } from '@/api'
 import PatientDialog from '@/components/PatientDialog.vue'
-import DltVerificationDialog from '@/components/DltVerificationDialog.vue'
 
 const router = useRouter()
 
@@ -372,7 +349,6 @@ const stats = ref({
 })
 
 const showPatientDialog = ref(false)
-const showDltDialog = ref(false)
 const selectedPatient = ref(null)
 const dialogMode = ref('create') // 'create' or 'edit'
 
@@ -640,11 +616,6 @@ function editPatient(patient) {
   showPatientDialog.value = true
 }
 
-async function verifyDltIntegrity(patient) {
-  selectedPatient.value = patient
-  showDltDialog.value = true
-}
-
 async function deletePatient(patient) {
   if (confirm(`Are you sure you want to delete patient ${patient.patient_id} (${patient.name})? This action cannot be undone.`)) {
     try {
@@ -686,28 +657,6 @@ async function handlePatientSaved() {
   await fetchPatients() // Refresh the list
   await fetchStats() // Refresh stats
   showSnackbar('Patient saved successfully')
-}
-
-async function handleDltVerified(result) {
-  showDltDialog.value = false
-  
-  if (result) {
-    // Update the specific patient's DLT status
-    const index = patients.value.findIndex(p => p.patient_id === result.patient_id)
-    if (index !== -1) {
-      patients.value[index].dlt_status = result.status
-    }
-    
-    await fetchStats() // Refresh stats
-    
-    if (result.is_verified) {
-      showSnackbar('DLT integrity verified successfully')
-    } else if (result.status === 'no_hash') {
-      showSnackbar('No DLT hash found for patient', 'warning')
-    } else {
-      showSnackbar('DLT integrity verification failed', 'error')
-    }
-  }
 }
 
 // Watch for page changes to reset to first page when data changes
