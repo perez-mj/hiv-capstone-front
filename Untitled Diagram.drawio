@@ -1,0 +1,103 @@
+<mxfile host="app.diagrams.net" agent="Mozilla/5.0 (X11; Linux x86_64; rv:145.0) Gecko/20100101 Firefox/145.0" version="29.2.7">
+  <diagram name="Page-1" id="k_mycOFk-7cSasaKXplD">
+    <mxGraphModel dx="1499" dy="809" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1100" pageHeight="1700" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="lmeMWZ45g8INd5hyNool-7" parent="1" style="rounded=0;whiteSpace=wrap;html=1;" value="" vertex="1">
+          <mxGeometry height="1160" width="760" x="160" y="120" as="geometry" />
+        </mxCell>
+        <mxCell id="lmeMWZ45g8INd5hyNool-28" edge="1" parent="1" source="lmeMWZ45g8INd5hyNool-1" style="rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0;entryY=0.5;entryDx=0;entryDy=0;endArrow=none;endFill=0;" target="lmeMWZ45g8INd5hyNool-23">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="lmeMWZ45g8INd5hyNool-29" edge="1" parent="1" source="lmeMWZ45g8INd5hyNool-1" style="rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0;entryY=0.5;entryDx=0;entryDy=0;endArrow=none;endFill=0;" target="lmeMWZ45g8INd5hyNool-24">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="lmeMWZ45g8INd5hyNool-1" parent="1" style="shape=umlActor;verticalLabelPosition=bottom;verticalAlign=top;html=1;outlineConnect=0;" value="Nurse/Staff" vertex="1">
+          <mxGeometry height="60" width="30" x="70" y="460" as="geometry" />
+        </mxCell>
+        <mxCell id="lmeMWZ45g8INd5hyNool-2" parent="1" style="shape=umlActor;verticalLabelPosition=bottom;verticalAlign=top;html=1;outlineConnect=0;" value="Actor" vertex="1">
+          <mxGeometry height="60" width="30" x="970" y="730" as="geometry" />
+        </mxCell>
+        <mxCell id="lmeMWZ45g8INd5hyNool-3" parent="1" style="shape=umlActor;verticalLabelPosition=bottom;verticalAlign=top;html=1;outlineConnect=0;" value="Actor" vertex="1">
+          <mxGeometry height="60" width="30" x="970" y="460" as="geometry" />
+        </mxCell>
+        <mxCell id="lmeMWZ45g8INd5hyNool-18" edge="1" parent="1" source="lmeMWZ45g8INd5hyNool-8" style="rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=none;endFill=0;" target="lmeMWZ45g8INd5hyNool-13">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="lmeMWZ45g8INd5hyNool-19" edge="1" parent="1" source="lmeMWZ45g8INd5hyNool-8" style="rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0;entryY=0.5;entryDx=0;entryDy=0;endArrow=none;endFill=0;" target="lmeMWZ45g8INd5hyNool-14">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="lmeMWZ45g8INd5hyNool-20" edge="1" parent="1" source="lmeMWZ45g8INd5hyNool-8" style="rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0;entryY=0.5;entryDx=0;entryDy=0;endArrow=none;endFill=0;" target="lmeMWZ45g8INd5hyNool-15">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="lmeMWZ45g8INd5hyNool-8" parent="1" style="ellipse;whiteSpace=wrap;html=1;" value="&lt;span&gt;Patient Management&lt;/span&gt;" vertex="1">
+          <mxGeometry height="50" width="110" x="200" y="380" as="geometry" />
+        </mxCell>
+        <mxCell id="lmeMWZ45g8INd5hyNool-11" parent="1" style="ellipse;whiteSpace=wrap;html=1;" value="&lt;span&gt;Register/Enroll New Patient&lt;/span&gt;" vertex="1">
+          <mxGeometry height="60" width="130" x="380" y="250" as="geometry" />
+        </mxCell>
+        <mxCell id="lmeMWZ45g8INd5hyNool-13" parent="1" style="ellipse;whiteSpace=wrap;html=1;" value="&lt;span&gt;Update Patient Medical Profile&lt;/span&gt;" vertex="1">
+          <mxGeometry height="60" width="110" x="390" y="340" as="geometry" />
+        </mxCell>
+        <mxCell id="lmeMWZ45g8INd5hyNool-14" parent="1" style="ellipse;whiteSpace=wrap;html=1;" value="&lt;span&gt;Verify Patient Data Integrity&lt;/span&gt;" vertex="1">
+          <mxGeometry height="60" width="130" x="380" y="440" as="geometry" />
+        </mxCell>
+        <mxCell id="lmeMWZ45g8INd5hyNool-15" parent="1" style="ellipse;whiteSpace=wrap;html=1;" value="&lt;span&gt;Manage Patient Consent Forms&lt;/span&gt;" vertex="1">
+          <mxGeometry height="60" width="110" x="390" y="540" as="geometry" />
+        </mxCell>
+        <mxCell id="lmeMWZ45g8INd5hyNool-17" edge="1" parent="1" source="lmeMWZ45g8INd5hyNool-8" style="rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0.048;entryY=0.667;entryDx=0;entryDy=0;entryPerimeter=0;endArrow=none;endFill=0;" target="lmeMWZ45g8INd5hyNool-11">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="lmeMWZ45g8INd5hyNool-21" edge="1" parent="1" source="lmeMWZ45g8INd5hyNool-1" style="rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0;entryY=0.5;entryDx=0;entryDy=0;endArrow=none;endFill=0;" target="lmeMWZ45g8INd5hyNool-8">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="lmeMWZ45g8INd5hyNool-22" parent="1" style="ellipse;whiteSpace=wrap;html=1;" value="&lt;span&gt;Process Biometric Check-In (Verification)&lt;/span&gt;" vertex="1">
+          <mxGeometry height="80" width="120" x="195" y="500" as="geometry" />
+        </mxCell>
+        <mxCell id="lmeMWZ45g8INd5hyNool-23" parent="1" style="ellipse;whiteSpace=wrap;html=1;" value="&lt;span&gt;Update Visit/Consultation Status&lt;/span&gt;" vertex="1">
+          <mxGeometry height="60" width="120" x="360" y="640" as="geometry" />
+        </mxCell>
+        <mxCell id="lmeMWZ45g8INd5hyNool-24" parent="1" style="ellipse;whiteSpace=wrap;html=1;" value="&lt;span&gt;Record HIV Test Results&lt;/span&gt;" vertex="1">
+          <mxGeometry height="60" width="120" x="195" y="760" as="geometry" />
+        </mxCell>
+        <mxCell id="lmeMWZ45g8INd5hyNool-25" parent="1" style="ellipse;whiteSpace=wrap;html=1;" value="&lt;span&gt;Document Clinical Notes&lt;/span&gt;" vertex="1">
+          <mxGeometry height="60" width="120" x="195" y="640" as="geometry" />
+        </mxCell>
+        <mxCell id="lmeMWZ45g8INd5hyNool-26" edge="1" parent="1" source="lmeMWZ45g8INd5hyNool-1" style="rounded=0;orthogonalLoop=1;jettySize=auto;html=1;endArrow=none;endFill=0;" target="lmeMWZ45g8INd5hyNool-22">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="lmeMWZ45g8INd5hyNool-27" edge="1" parent="1" source="lmeMWZ45g8INd5hyNool-1" style="rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0;entryY=0.5;entryDx=0;entryDy=0;endArrow=none;endFill=0;" target="lmeMWZ45g8INd5hyNool-25">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="lmeMWZ45g8INd5hyNool-30" parent="1" style="ellipse;whiteSpace=wrap;html=1;" value="&lt;span&gt;Document Clinical Notes Management&lt;/span&gt;" vertex="1">
+          <mxGeometry height="60" width="120" x="195" y="880" as="geometry" />
+        </mxCell>
+        <mxCell id="lmeMWZ45g8INd5hyNool-31" edge="1" parent="1" source="lmeMWZ45g8INd5hyNool-1" style="rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0;entryY=0.5;entryDx=0;entryDy=0;endArrow=none;endFill=0;" target="lmeMWZ45g8INd5hyNool-30">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="lmeMWZ45g8INd5hyNool-32" parent="1" style="ellipse;whiteSpace=wrap;html=1;" value="&lt;span&gt;Manage ARV/Medicine Inventory&lt;/span&gt;" vertex="1">
+          <mxGeometry height="60" width="120" x="350" y="760" as="geometry" />
+        </mxCell>
+        <mxCell id="lmeMWZ45g8INd5hyNool-33" parent="1" style="ellipse;whiteSpace=wrap;html=1;" value="&lt;span&gt;Dispense ARV Medications&lt;/span&gt;" vertex="1">
+          <mxGeometry height="60" width="120" x="370" y="850" as="geometry" />
+        </mxCell>
+        <mxCell id="lmeMWZ45g8INd5hyNool-34" parent="1" style="ellipse;whiteSpace=wrap;html=1;" value="&lt;span&gt;Track Patient Medication Adherence&lt;/span&gt;" vertex="1">
+          <mxGeometry height="80" width="120" x="250" y="960" as="geometry" />
+        </mxCell>
+        <mxCell id="lmeMWZ45g8INd5hyNool-35" parent="1" style="ellipse;whiteSpace=wrap;html=1;" value="&lt;span&gt;Generate Pharmacy Reports&lt;/span&gt;" vertex="1">
+          <mxGeometry height="80" width="120" x="380" y="950" as="geometry" />
+        </mxCell>
+        <mxCell id="lmeMWZ45g8INd5hyNool-36" parent="1" style="ellipse;whiteSpace=wrap;html=1;" value="&lt;span&gt;View Real-Time Queue Dashboard&lt;/span&gt;" vertex="1">
+          <mxGeometry height="80" width="120" x="300" y="1150" as="geometry" />
+        </mxCell>
+        <mxCell id="lmeMWZ45g8INd5hyNool-37" parent="1" style="ellipse;whiteSpace=wrap;html=1;" value="&lt;span&gt;Queue &amp;amp; Schedule Management&lt;/span&gt;" vertex="1">
+          <mxGeometry height="80" width="120" x="170" y="1100" as="geometry" />
+        </mxCell>
+        <mxCell id="lmeMWZ45g8INd5hyNool-38" parent="1" style="ellipse;whiteSpace=wrap;html=1;" value="&lt;span&gt;Manage Nurse Calendar/Schedule&lt;/span&gt;" vertex="1">
+          <mxGeometry height="80" width="120" x="350" y="1050" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
